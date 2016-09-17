@@ -1,0 +1,136 @@
+name = aconf
+    type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/aconf/aconf.lua
+		filename = aconf
+    category = utility configuration
+    version = 1.0.0
+    size = 1313
+    dependencies = admicos/libcfg
+    --link = http://www.computercraft.info/forums2/index.php?/topic/25456-libcfg-a-basic-configuration-api/
+end
+
+name = bfluac
+    type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/bfluac/bfluac.lua
+		filename = bfluac
+    category = utility brainfuck
+    version = 1.0.2
+    size = 3769
+	dependencies = none
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27197-bfluac-convert-brainfuck-programs-to-lua/
+end
+
+name = bfluac-helloworld
+    type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/bfluac-helloworld/bfluac-helloworld.lua
+		filename = bfluac-helloworld
+    category = brainfuck
+    version = 1.0.0
+    size = 12311
+	dependencies = none
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27197-bfluac-convert-brainfuck-programs-to-lua/
+end
+
+name = bundel
+    type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/bundel/bundel.lua
+		filename = bundel
+    category = utility bundle
+    version = 1.0.0
+    size = 3419
+	dependencies = none
+    --link = http://www.computercraft.info/forums2/index.php?/topic/26350-bundel-a-program-to-bundle-multiple-files-to-one-self-extracting-program
+end
+
+name = libcfg
+    type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/libCFG/libCFG
+		filename = libCFG
+    category = api config
+    version = 1.0.0
+    size = 652
+    dependencies = none
+    target = /usr/apis
+    --link = http://www.computercraft.info/forums2/index.php?/topic/25456-libcfg-a-basic-configuration-api/
+end
+
+name = bfluac-chat
+	type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/bfluac-chat/bfluac-chat.lua
+		filename = bfluac-chat
+	category = brainfuck computronics-chat
+	version = 1.0.0
+	size = 2011
+	dependencies = admicos/bfluac
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27197-bfluac-convert-brainfuck-programs-to-lua/
+end
+
+name = apaste
+	type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/apaste/apaste.lua
+		filename = apaste
+	category = pastebin hosting
+	version = 1.0.0
+	size = 13376
+	dependencies = none
+	--link = http://46.101.102.147:5000/
+end
+
+name = getopt
+	type = raw
+		url = https://raw.githubusercontent.com/Admicos/cc-packman-repo/master/getopt/getopt.lua
+		filename = getopt
+	category = api args
+	version = 1.0.1
+	size = 1850
+	dependencies = none
+    target = /usr/apis
+	--link = http://www.computercraft.info/forums2/index.php?/topic/27355-getopt-easy-option-parsing/
+end
+
+name = admios-full
+    type = github
+        author = admicos
+        repository = AdmiOS
+        branch = master
+	category = admios os
+    target = /
+	version = 2.1.1
+	size = 2011
+	dependencies = admicos/getopt
+    --link = http://www.computercraft.info/forums2/index.php?/topic/25411-admios-rw/
+end
+
+name = tntta
+    type = pastebin
+        url = 7tbpQp9t
+        filename = tntta
+    category = game
+    version = 1.0.0
+    size = 1000
+    dependencies = none
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27463-try-not-to-touch-anything/
+end
+
+name = tntta-edit
+    type = pastebin
+        url = z6N2ivxm
+        filename = tntta-edit
+    category = game
+    version = 1.0.0
+    size = 1000
+    dependencies = none
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27463-try-not-to-touch-anything/
+end
+
+name = newLibCFG
+    type = pastebin
+        url = e4hJ32cS
+        filename = newLibCFG
+    category = api configuration
+    version = 1.0.0
+    size = 1000
+    dependencies = none
+    target = /usr/apis
+    --link = http://www.computercraft.info/forums2/index.php?/topic/27494-newlibcfg-basic-configuration-api/
+end

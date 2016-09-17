@@ -1,0 +1,196 @@
+name = LyqydOS
+	type = github
+		author = lyqyd
+		repository = LyqydOS
+		branch = master
+	category = os
+	setup = installer setup
+	cleanup = installer remove
+	dependencies = lyqyd/framebuffer lyqyd/configuration lyqyd/lsh
+	target = /LyqydOS
+	version = 1.904
+	size = 138236
+end
+
+name = LyqydNet
+	type = github
+		author = lyqyd
+		repository = ComputerCraft-LyqydNet
+		branch = master
+	category = networking rednet api
+	dependencies = none
+	target = /usr
+	version = 1.5
+	size = 46169
+end
+
+name = lsh
+	type = github
+		author = lyqyd
+		repository = cc-lsh
+		branch = master
+	category = shell
+	dependencies = none
+	version = 0.2
+	size = 23241
+end
+
+name = location
+	type = raw
+		url = https://raw.github.com/lyqyd/LyqydNet-Programs/master/apis/location
+		filename = location
+	category = turtle api
+	dependencies = none
+	target = /usr/apis
+	version = 0.2
+	size = 2671
+end
+
+name = touchpoint
+	type = raw
+		url = https://raw.github.com/lyqyd/Touchpoint/master/touchpoint
+		filename = touchpoint
+	category = advanced monitor api
+	dependencies = none
+	target = /usr/apis/
+	version = 0.1
+	size = 4931
+end
+
+name = nsh
+	type = raw
+		url = https://raw.github.com/lyqyd/cc-netshell/master/nsh
+		filename = nsh
+	category = rednet shell remote
+	dependencies = lyqyd/framebuffer
+	version = 0.8
+	size = 23767
+end
+
+name = nsh-put
+	type = raw
+		url = https://raw.github.com/lyqyd/cc-netshell/master/put
+		filename = put
+	category = rednet shell utility
+	dependencies = lyqyd/nsh
+	version = 0.1
+	size = 762
+end
+
+name = nsh-get
+	type = raw
+		url = https://raw.github.com/lyqyd/cc-netshell/master/get
+		filename = get
+	category = rednet shell utility
+	dependencies = lyqyd/nsh
+	version = 0.1
+	size = 599
+end
+
+name = nsh-auth
+	type = pastebin
+		url = ySEWczEr
+		filename = auth
+	category = rednet shell security
+	dependencies = lyqyd/nsh
+	version = 0.1
+	size = 228
+end
+
+name = vncd
+	type = raw
+		url = https://raw.github.com/lyqyd/cc-netshell/master/vncd
+		filename = vncd
+	category = rednet shell remote
+	dependencies = lyqyd/framebuffer
+	version = 0.5
+	size = 45579
+end
+
+name = framebuffer
+	type = github
+		author = lyqyd
+		repository = framebuffer
+		branch = master
+	category = redirect buffer api
+	dependencies = none
+	target = /usr/apis
+	version = 0.6
+	size = 10047
+end
+
+name = configuration
+	type = pastebin
+		url = ARMEBbJz
+		filename = configuration
+	category = api
+	dependencies = none
+	target = /usr/apis
+	version = 0.2
+	size = 1057
+end
+
+name = setup
+	type = raw
+		url = https://raw.github.com/lyqyd/cc-generalized-setup/master/setup
+		filename = setup
+	category = turtle gui
+	dependencies = lyqyd/location
+	version = 0.1
+	size = 25045
+end
+
+name = pocket-gps
+	type = pastebin
+		url = wQaGzaK7
+		filename = pgps
+	category = pocket gps
+	dependencies = none
+	target = /usr/bin
+	version = 0.1
+	size = 15718
+end
+
+name = lnfs-daemon
+	type = github
+		author = lyqyd
+		repository = lnfs-daemon
+		branch = master
+	category = rednet server
+	dependencies = lyqyd/lyqydnet lyqyd/configuration
+	target = /usr/bin
+	version = 0.2
+	size = 6611
+end
+
+name = lnfs-client
+	type = github
+		author = lyqyd
+		repository = lnfs-client
+		branch = master
+	category = rednet fs
+	dependencies = lyqyd/lyqydos lyqyd/lyqydnet
+	target = /usr/bin
+	version = 0.2
+	size = 3662
+end
+
+name = raidtools
+	type = github
+		author = lyqyd
+		repository = cc-raidtools
+		branch = master
+	category = fs
+	dependencies = lyqyd/lyqydos
+	target = /usr/bin
+	version = 0.4
+	size = 13614
+end
+
+name = lyqyd-suite
+	type = meta
+	category = group
+	dependencies = lyqyd/lyqydos lyqyd/lyqydnet
+	version = 0.1
+	size = 0
+end

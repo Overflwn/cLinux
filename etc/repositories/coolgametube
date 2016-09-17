@@ -1,0 +1,57 @@
+name = WicowsTools
+	type = pastebin
+		url = REaZXV7W
+		filename = WicowsTools
+	category = api tools
+	target = /usr/apis
+	version = 1.24
+	dependencies = coolgametube/autoapi
+	size = 9981
+end
+
+name = AutoAPI
+	type = pastebin
+		url = VUvh8syV
+		filename = AutoAPI
+	setup = AutoAPI install
+	cleanup = AutoAPI remove
+	category = Loader
+	dependencies = none
+	version = 1.2
+	size = 2669
+end
+
+name = CheckCompatible
+	type = pastebin
+		url = GvZ3R1Jb
+		filename = CheckCompatible
+	setup = CheckCompatible -setup__
+	cleanup = CheckCompatible -setup__
+	category = checker tool program
+	dependencies = coolgametube/wicowstools
+	version = 1.1
+	size = 625
+end
+
+name = easy-shell-noStartup
+	type = pastebin
+		url = 0e6kiqHs
+		filename = easy-shell
+	setup = easy-shell install
+	cleanup = easy-shell remove
+	category = shell
+	dependencies = none
+	version = 0.2
+	size = 1626
+end
+
+
+name = craftos-plus-console-api
+	type = pastebin
+		url = gNu7wQc9
+		filename = Console
+	target = /usr/apis
+	dependencies = none
+	version = 1.0
+	size = 477
+end

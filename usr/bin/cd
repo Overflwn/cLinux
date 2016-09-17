@@ -1,0 +1,73 @@
+--[[
+	Basic change-directory program
+	No real changes
+]]
+
+local function changeDir(dest)
+	local goback = false
+		--local a, b = string.find(dest, "[..]")
+		if dest == ".." then
+			goback = true
+		else
+			goback = false
+		end
+	local a, b = string.find(dest, "//")
+	local falseDir = false
+	if a ~= nil and a >= 1 and b > 1 and goback == false then
+		falseDir = true
+	end
+	local a, b = string.find(dest, "/", 1)
+	if a == 1 and goback == false and falseDir == false then
+		--inthis = false
+	elseif falseDir == false then
+		--inthis = true
+		dest = _G.currentDir..dest
+	end
+	if fs.isDir(dest) and falseDir == false then
+		local found = false
+		
+		
+		
+		local a, b = string.find(dest, "/", #dest)
+		if a == #dest and goback == false then
+			found = true
+		end
+		if found == false and goback == false then
+			_G.currentDir = dest.."/"
+		elseif found == true and goback == false then
+			_G.currentDir = dest
+		elseif goback and _G.currentDir ~= "/" then
+			dest = _G.currentDir
+			dest = string.reverse(dest)
+			local i, j = string.find(dest, "/")
+			if i then
+				dest = string.sub(dest, j+1, #dest)
+				local i, j = string.find(dest, "/")
+				dest = string.sub(dest, j+1, #dest)
+				dest = string.reverse(dest)
+				_G.currentDir = dest.."/"
+			else
+				local col = term.getTextColor()
+				term.setTextColor(colors.red)
+				print("Error.")
+				term.setTextColor(col)
+			end
+		end
+		return true
+	else
+		local col = term.getTextColor()
+		term.setTextColor(colors.red)
+		print("No such directory.")
+		term.setTextColor(col)
+		return false
+	end
+end
+
+local tArgs = {...}
+
+if #tArgs < 1 or #tArgs > 1 then
+	print("Usage:")
+	print("		cd <path>")
+else
+	changeDir(tArgs[1])
+end

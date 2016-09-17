@@ -1,0 +1,170 @@
+--[[
+	Attempt to recreate Top-Level coroutines
+	Because the old program doesn't work (for me atleast)
+	
+	UPDATE: THIS WORKS FLAWLESS NOW
+	
+	Credits to:
+	-Nevercast (for the old script, of course)
+	-Me (kappa)
+	
+	Have fun with this :)
+	
+	Nevercast's code: http://pastebin.com/2SQAzrWi
+	
+	The problem probably was the way he searched for 'shell' and how he handled the new shutdown
+	You can look down and see that I redirected all fake Events to 'biosexit' because I saw no real
+	need for the other stages.
+	
+	And thanks (again) to Nevercast for this awesome idea :)
+	
+	-Piorjade 2016
+]]
+
+local progs = {
+	function()
+		
+		os.run( {}, "/sys/os.lua" )
+	end,
+	
+	--[[
+	
+	EXAMPLE:
+	
+	function()
+		os.run( {}, "/my/secret/stuff/secretApplication" )
+	end
+	]]
+}
+
+local oldState = {}
+local msgs = true
+
+if os.myEnv then
+        if msgs then
+            print"Injection completed successfully"
+        end
+        -- Remove myEnv to prevent detection
+        os.myEnv = nil
+        return
+end
+
+function table.size(tbl)
+	local c = 0
+	for _, __ in pairs(tbl) do
+		c = c+1
+	end
+	return c
+end
+
+local function getShell()
+	print("Getting shell..")
+	local t = 0
+	while true do
+		t = t+1
+		local ok, env = getfenv(t)
+		if not ok then break end
+		for i, a in pairs(ok) do
+			if i == "shell" then
+				return a
+			end
+		end
+	end
+	return nil
+end
+
+local function recvr()
+	os.myEnv = true
+	os.startTimer = oldState.startTimer
+	os.shutdown = oldState.shutdown
+	os.pullEvent = oldState.pullEvent
+	oldstate = nil
+	term.setCursorPos(1,1)
+	term.clear()
+	if msgs then
+		print("This is before Shell")
+	end
+	_G['rednet'] = nil
+	os.loadAPI("/rom/apis/rednet")
+	local ok, err = pcall( function()
+	parallel.waitForAny(
+		unpack(progs)
+	)
+	
+	end )
+end
+
+os.stage = {}
+
+-- Stages:
+-- injected: Overriding os functions
+-- shutdown: Shutdown program has been called
+-- jstincse: Shell is doing it's just-in-case
+-- bioswait: Bios is waiting for a key press
+-- biosexit: Bios has quit
+-- complete: fully injected
+ 
+ local function setStage(stage)
+	os.stage.currentStage = stage
+ end
+ 
+ local function getStage(stage)
+	return os.stage.currentStage
+ end
+ 
+ local function newPullEvent(_filter)
+	_filter = _filter or ""
+	if _filter == "key" then
+		setStage("biosexit")
+		return "key", 0
+	elseif _filter == "timer" then
+		setStage("biosexit")
+		return "timer", 0
+	end
+ end
+ 
+ local function newSleep(dur)
+	local timer = oldState.startTimer(dur)
+	repeat
+		local sEvent, param = oldState.pullEvent("timer")
+	until param == timer
+ end
+ 
+ local function newShutdown()
+	if getStage() == "shutdown" then
+		setStage("biosexit")
+	elseif getStage() == "bioswait" then
+		setStage("biosexit")
+	elseif getStage() == "biosexit" then
+		recvr()
+	end
+	if getStage() == "biosexit" then
+		recvr()
+	end
+ end
+ 
+ local function newStarttimer(seconds)
+	return 0
+ end
+ 
+ local function inject()
+	oldState.startTimer = os.startTimer
+	print("Got timer.")
+	oldState.shutdown = os.shutdown
+	print("Got shutdown.")
+	oldState.pullEvent = os.pullEvent
+	print("Got pullEvent.")
+	os.shutdown = newShutdown
+	print("Set Shutdown.")
+	os.pullEvent = newPullEvent
+	print("Set pullEvent.")
+	os.startTimer = newStarttimer
+	print("Set timer.")
+	setStage("biosexit")
+	print("Injected.")
+	local shellImpl = getShell()
+	shellImpl.exit()
+ end
+ 
+ print("injecting..")
+ inject()

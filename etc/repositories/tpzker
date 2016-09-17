@@ -1,0 +1,10 @@
+name = hyperhttp
+	type = pastebin
+		url = eCVuauU0
+		filename = hyperhttp
+	category = http apis
+	version = 1.0
+	target=/usr/apis
+	dependencies = none
+	size = 333
+end

@@ -1,0 +1,43 @@
+name = require
+	type = pastebin
+		url = mM9N0hyv
+		filename = require
+	category = require api
+	dependencies = none
+	target = /usr/apis
+	version = 2.01
+	size = 425
+end
+
+name = addrequire
+	type = raw
+		url = https://github.com/comp500/CCSnippets/raw/master/addrequire.lua
+		filename = addrequire
+	category = prepend require api
+	dependencies = comp500/require
+	target = /usr/bin
+	version = 1
+	size = 1003
+end
+
+name = lib
+	type = pastebin
+		url = MZSSaAGc
+		filename = lib
+	category = lib api
+	dependencies = none
+	target = /usr/apis
+	version = 1
+	size = 985
+end
+
+name = ccConfig
+	type = raw
+		url = https://github.com/theoriginalbit/ccConfig/raw/master/ccConfig.lua
+		filename = ccConfig
+	category = configuration api
+	dependencies = none
+	target = /usr/apis
+	version = 1
+	size = 1
+end

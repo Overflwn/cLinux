@@ -1,0 +1,21 @@
+name = packman
+	type = raw
+		url = https://raw.githubusercontent.com/lyqyd/cc-packman/master/packman
+		filename = packman
+	category = utility
+	dependencies = none
+	version = 0.3
+	size = 17110
+end
+
+name = easy-shell
+	type = pastebin
+		url = wzWFmaav
+		filename = easy-shell
+	setup = easy-shell install
+	cleanup = easy-shell remove
+	category = shell
+	dependencies = none
+	version = 0.2
+	size = 1626
+end
