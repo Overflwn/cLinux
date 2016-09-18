@@ -11,6 +11,9 @@ local function changeDir(dest)
 		else
 			goback = false
 		end
+	if dest == "~" then
+		dest = "/usr/".._G.currentUsr.."/home/"
+	end
 	local a, b = string.find(dest, "//")
 	local falseDir = false
 	if a ~= nil and a >= 1 and b > 1 and goback == false then

@@ -1,10 +1,4 @@
---[[
-	Custom mkdir command, which checks which user is logged in
-	This will not allow normal users to make a directory under their
-	home directory.
-]]
-
-local function m(d)
+local function del(d)
 	local r = false
 	local falseDir = false
 	local inhome = true
@@ -38,13 +32,13 @@ local function m(d)
 		if a == 1 then
 			path = d
 		end
-		local a = fs.makeDir(path)
+		local a = fs.delete(path)
 		if a == false then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
 			print("You have no privileges.")
 			term.setTextColor(c)
-		elseif a == "Folder/File already exists." then
+		elseif a == "Folder/File does not exist." then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
 			print(a)
@@ -63,13 +57,11 @@ local function m(d)
 		return false
 	end
 end
-
-
 local tArgs = {...}
 
 if #tArgs < 1 or #tArgs > 1 then
 	print("Usage:")
-	print("		mkdir <folderName>")
+	print("		rm <path>")
 else
-	m(tArgs[1])
+	del(tArgs[1])
 end
