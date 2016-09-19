@@ -14,8 +14,8 @@
 	is polished enough...)
 ]]
 --APIs (WILL PROBABLY BE IMPORTANT FOR DESKTOP ENVIROMENTS TOO)
-os.loadAPI("/sys/API/blake")
-_G.blake = blake
+os.loadAPI("/sys/API/sha")
+_G.sha = sha
 X = nil --ENTER THE PATH TO YOUR DESKTOP ENVIROMENT, IF IT'S NOT NIL IT WILL TRY TO LOAD IT
 
 --Variablen
@@ -168,8 +168,7 @@ local function register(step)
 	elseif step == 4 then
 		print("Account "..tmpUsr.." successfully created.")
 		table.insert(usrData.usrName, tmpUsr)
-		tmpPw = blake.digest(tmpPw, tmpUsr)
-		tmpPw:toHex()
+		tmpPw = sha.pbkdf2(tmpPw, tmpUsr, 10):toHex()
 		table.insert(usrData.password, tostring(tmpPw))
 		local file = fs.open("/sys/usrData","w")
 		local a = textutils.serialize(usrData)
@@ -224,8 +223,7 @@ local function login(step)
 			term.setTextColor(col)
 			login(2)
 		else
-			p = blake.digest(p, currentUsr)
-			p:toHex()
+			p = sha.pbkdf2(p, currentUsr, 10):toHex()
 			p = tostring(p)
 			local file = fs.open("/sys/.rootpw","r")
 			local rpw = file.readLine()
@@ -539,8 +537,7 @@ local function checkUsr()
 		
 		print(usrData.usrName[1])
 		local a = limitReadPw(16)
-		a = blake.digest(a, usrData.usrName[1])
-		a:toHex()
+		a = sha.pbkdf2(a, usrData.usrName[1], 10):toHex()
 		a = tostring(a)
 		if a == usrData.password[1] then
 			print("true")
