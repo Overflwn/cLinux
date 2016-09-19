@@ -168,13 +168,8 @@ local function register(step)
 	elseif step == 4 then
 		print("Account "..tmpUsr.." successfully created.")
 		table.insert(usrData.usrName, tmpUsr)
-<<<<<<< HEAD
 		tmpPw = sha.pbkdf2(tmpPw, tmpUsr, 10):toHex()
 		table.insert(usrData.password, tostring(tmpPw))
-=======
-		tmpPw = blake.digest(tmpPw, tmpUsr):toHex()
-		table.insert(usrData.password, tmpPw)
->>>>>>> master
 		local file = fs.open("/sys/usrData","w")
 		local a = textutils.serialize(usrData)
 		file.write(a)
@@ -228,12 +223,8 @@ local function login(step)
 			term.setTextColor(col)
 			login(2)
 		else
-<<<<<<< HEAD
 			p = sha.pbkdf2(p, currentUsr, 10):toHex()
 			p = tostring(p)
-=======
-			p = blake.digest(p, currentUsr):toHex()
->>>>>>> master
 			local file = fs.open("/sys/.rootpw","r")
 			local rpw = file.readLine()
 			file.close()
