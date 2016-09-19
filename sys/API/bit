@@ -1,0 +1,46 @@
+--[[
+  cLinux: Daelvn's fork
+  NAME:        bit
+  CATEGORY:    library
+  VERSION:     R12:190916B
+  DESCRIPTION: Bit library
+
+  Made by thecrimulo
+  ~ Dael
+]]--
+
+
+local bitlib = {}
+for k,v in pairs(bit) do
+	bitlib[k] = v
+end
+local lbit = {}
+
+-- Returns a binary num-indexes table as the deprecated function
+function lbit.toBinary(decimal)
+  local bin = tostring(tonumber(tostring(decimal),2)) -- To binary
+  local tab = {}
+  for b in str:gmatch"." do
+    tab[#tab+1] = tonumber(b)
+  end
+  return tab
+end
+
+-- Returns a decimal number
+function lbit.toDecimal(binTable)
+  local bin = tostring(table.concat(binTable))
+  local dec = tonumber(bin, 10)
+  return dec
+end
+
+lbit.lshift = bitlib.blshift
+lbit.rshift = bitlib.brshift
+lbit.lrshift = bitlib.blogic_brshift
+lbit.bnot = bitlib.bnot
+lbit.band = bitlib.band
+lbit.bnand = function(n, m) return bitlib.bnot(bitlib.band(n, m)) end
+lbit.bor = bitlib.bor
+lbut.bxor = bitlib.bxor
+lbit.bxnor = function(n, m) return bitlib.bnot(bitlib.bxor(n, m)) end
+
+bit = lbit
