@@ -12,7 +12,7 @@ local function changeDir(dest)
 			goback = false
 		end
 	if dest == "~" then
-		dest = "/usr/".._G.currentUsr.."/home/"
+		dest = "/usr/"..l.currentUsr.."/home/"
 	end
 	local a, b = string.find(dest, "//")
 	local falseDir = false
@@ -24,7 +24,7 @@ local function changeDir(dest)
 		--inthis = false
 	elseif falseDir == false then
 		--inthis = true
-		dest = _G.currentDir..dest
+		dest = l.currentDir..dest
 	end
 	if fs.isDir(dest) and falseDir == false then
 		local found = false
@@ -36,11 +36,11 @@ local function changeDir(dest)
 			found = true
 		end
 		if found == false and goback == false then
-			_G.currentDir = dest.."/"
+			l.currentDir = dest.."/"
 		elseif found == true and goback == false then
-			_G.currentDir = dest
-		elseif goback and _G.currentDir ~= "/" then
-			dest = _G.currentDir
+			l.currentDir = dest
+		elseif goback and l.currentDir ~= "/" then
+			dest = l.currentDir
 			dest = string.reverse(dest)
 			local i, j = string.find(dest, "/")
 			if i then
@@ -48,7 +48,7 @@ local function changeDir(dest)
 				local i, j = string.find(dest, "/")
 				dest = string.sub(dest, j+1, #dest)
 				dest = string.reverse(dest)
-				_G.currentDir = dest.."/"
+				l.currentDir = dest.."/"
 			else
 				local col = term.getTextColor()
 				term.setTextColor(colors.red)
