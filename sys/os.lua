@@ -712,6 +712,8 @@ function linuxShell()
 						print(err)
 						term.setTextColor(col)
 					end
+					_G.currentUsr = oldCUsr
+					_G.currentPw = oldCPw
 				end
 			end
 --[[							NOT YET IMPLEMENTED:
