@@ -29,14 +29,18 @@ cLinux is a Work-in-progress Operating System for ComputerCraft made by Piorjade
     - Run programs (evidently, with the Top Level Corroutine Override)
 
 ### How to get it
-Installer: `pastebin run wVJYNGVS /`
+Installer: `pastebin run wVJYNGVS \`
+
 Source code: https://github.com/Piorjade/cLinux
 
 ### Credits
 Anavrins - For SHA-256
+
 Lyqyd - For packman
+
 Nevercast (& me) - For Top Level Coroutine Override
-{add me?}
+
+Apemanzilla - For gitget
 
 ##### Funfact:
 I did this because I love Linux and finally completely destroyed my Windows 10 partition and installed Ubuntu on it <3 
