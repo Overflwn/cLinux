@@ -24,7 +24,8 @@
 local progs = {
 	function()
 		
-		os.run( {}, "/sys/os.lua" )
+		local ok, err = os.run( {}, "/sys/os.lua" )
+		return ok, err
 	end,
 	
 	--[[
@@ -90,7 +91,11 @@ local function recvr()
 	parallel.waitForAny(
 		unpack(progs)
 	)
-	
+	if ok == nil or ok == false then
+		print(err)
+		os.pullEvent()
+		os.pullEvent()
+	end
 	end )
 end
 
