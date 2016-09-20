@@ -8,7 +8,7 @@ local function m(d)
 	local r = false
 	local falseDir = false
 	local inhome = true
-	if _G.currentUsr ~= "root" then
+	if currentUsr ~= "root" then
 		r = false
 	else
 		r = true
@@ -18,7 +18,7 @@ local function m(d)
 	if a or i ~= nil and i == j then
 		falseDir = true
 	end
-	local a, b = string.find(_G.currentDir, "/usr/".._G.currentUsr.."/home/")
+	local a, b = string.find(currentDir, "/usr/"..currentUsr.."/home/")
 	if r == false and a == nil then
 		inhome = false
 	end
@@ -33,7 +33,7 @@ local function m(d)
 			term.setTextColor(col)
 			return
 		end
-		local path = _G.currentDir..d
+		local path = currentDir..d
 		local a, b = string.find(d, "/")
 		if a == 1 then
 			path = d
@@ -42,7 +42,7 @@ local function m(d)
 		if a == false then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
-			print("You have no privileges.")
+			print("You have no privileges, try 'sudo'.")
 			term.setTextColor(c)
 		elseif a == "Folder/File already exists." then
 			local c = term.getTextColor()

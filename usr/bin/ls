@@ -1,6 +1,6 @@
 local function listFiles(dir)
 	if dir == nil or dir == "" then
-		dir = _G.currentDir
+		dir = currentDir
 	end
 	
 	local files = {}

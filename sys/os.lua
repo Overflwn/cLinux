@@ -35,7 +35,11 @@ local function createReadOnly (tab)
                 return self
 end
 
-
+local oldOpen = fs.open
+local oldmkdir = fs.makeDir
+local oldMove = fs.move            ------- This should run outside of init(), to prevent programs having access to it
+local oldCopy = fs.copy
+local oldDelete = fs.delete
 
 
 
@@ -77,11 +81,11 @@ local cUsrNmbr = 1
 local oldCUsr = ""
 local oldCPw = ""
 local oldCDir = ""
-_G.currentUsr = ""
-_G.currentPw = ""
-_G.currentDir = ""
+currentUsr = ""
+currentPw = ""
+currentDir = ""
 
-_G.currentDir = "/usr/"
+currentDir = "/usr/"
 
 local function changeDir(dest)
 	local goback = false
@@ -92,7 +96,7 @@ local function changeDir(dest)
 			goback = false
 		end
 	if dest == "~" then
-		dest = "/usr/".._G.currentUsr.."/home/"
+		dest = "/usr/"..currentUsr.."/home/"
 	end
 	local a, b = string.find(dest, "//")
 	local falseDir = false
@@ -104,7 +108,7 @@ local function changeDir(dest)
 		--inthis = false
 	elseif falseDir == false then
 		--inthis = true
-		dest = _G.currentDir..dest
+		dest = currentDir..dest
 	end
 	if fs.isDir(dest) and falseDir == false then
 		local found = false
@@ -116,11 +120,11 @@ local function changeDir(dest)
 			found = true
 		end
 		if found == false and goback == false then
-			_G.currentDir = dest.."/"
+			currentDir = dest.."/"
 		elseif found == true and goback == false then
-			_G.currentDir = dest
-		elseif goback and _G.currentDir ~= "/" then
-			dest = _G.currentDir
+			currentDir = dest
+		elseif goback and currentDir ~= "/" then
+			dest = currentDir
 			dest = string.reverse(dest)
 			local i, j = string.find(dest, "/")
 			if i then
@@ -128,7 +132,7 @@ local function changeDir(dest)
 				local i, j = string.find(dest, "/")
 				dest = string.sub(dest, j+1, #dest)
 				dest = string.reverse(dest)
-				_G.currentDir = dest.."/"
+				currentDir = dest.."/"
 			else
 				local col = term.getTextColor()
 				term.setTextColor(colors.red)
@@ -147,11 +151,7 @@ local function changeDir(dest)
 end
 --Backup
 
-local oldOpen = fs.open
-local oldmkdir = fs.makeDir
-local oldMove = fs.move
-local oldCopy = fs.copy
-local oldDelete = fs.delete
+
 
 --Wichtige tabellen/variablen für den coroutine-manager
 
@@ -168,12 +168,174 @@ local c = {
 
 
 
+--[[
+										DUMMYFILES
+		Please add your workarounds for called functions here, which are not available
+		due to dumping CraftOS
+
+		For example the Shell API
+]]
 
 
 
 
 
 
+function setShellAPI(p)
+	shell = {}
+	shell.workPath = p
+	aliases = {} -- NOTE: THESE ARE NOT USED, THEY ARE ONLY USED TO PREVENT CRASHING THE PROGRAM
+	function shell.path()
+		return ".:/sys/:/sys/API/:"..shell.workPath
+	end
+	function shell.dir()
+		return shell.workPath
+	end
+	function shell.run(path, ...)
+		local x, y = string.find(path, "/rom/programs/")
+		if x ~= 1 then
+			local t = {...}
+			local file, err = oldOpen(path, "r")
+			local inhalt = file.readAll()
+			file.close()
+			local prog = loadstring(inhalt)
+			local oldWPath = shell.workPath
+			local p = string.reverse(path)
+			local x, y = string.find(p, "/")
+			local p = string.sub(p, x+1, #p)
+			if p == nil or p == "" or p == " " then
+				p = "/"
+			else
+				p = string.reverse(p)
+			end
+			shell.workPath = p
+			local env = getfenv(shell.run)
+			setfenv(prog, env)
+			local ok, err, b = pcall(prog, unpack(t))
+			shell.workPath = oldWPath
+			return ok, err, b
+		else
+			return false, "Cannot access rom"
+		end
+	end
+	function shell.exit()
+		return
+	end
+	function shell.setPath(path)
+		shell.workPath = path
+		return
+	end
+	function shell.resolve(a)
+		if fs.exists(shell.workPath..a) then
+			return shell.workPath..a
+		else
+			return
+		end
+	end
+	function shell.resolveProgram(prog)
+		if fs.exists("/usr/bin/"..prog) then
+			return "/usr/bin/"..prog
+		elseif fs.exists("/rom/programs/"..prog) then
+			return "/rom/programs/"..prog
+		elseif fs.exists("/rom/programs/turtle/"..prog) then
+			return "/rom/programs/turtle/"..prog
+		elseif fs.exists("/rom/programs/rednet/"..prog) then
+			return "/rom/programs/rednet/"..prog
+		elseif fs.exists("/rom/programs/pocket/"..prog) then
+			return "/rom/programs/pocket/"..prog
+		elseif fs.exists("/rom/programs/http/"..prog) then
+			return "/rom/programs/http/"..prog
+		elseif fs.exists("/rom/programs/fun/"..prog) then
+			return "/rom/programs/fun/"..prog
+		elseif fs.exists("/rom/programs/command/"..prog) then
+			return "/rom/programs/command/"..prog
+		elseif fs.exists("/rom/programs/advanced/"..prog) then
+			return "/rom/programs/advanced/"..prog
+		else
+			return
+		end
+	end
+	function shell.aliases()
+		return aliases
+	end
+	function shell.setAlias(a, b)
+		aliases[a] = b
+	end
+	function shell.clearAlias(a)
+		aliases[a] = nil
+	end
+	function shell.programs(hidden)
+		if hidden == nil then hidden = false end
+		local total = {}
+		local romprogs = fs.list("/rom/programs/")
+		local localprog = fs.list(shell.workPath)
+		for _, a in ipairs(romprogs) do
+			if hidden == false then
+				local x, y = string.find(a, "[.]")
+
+				if x == 1 and y == 1 then
+				else
+					if fs.isDir("/rom/programs/"..a) == false then
+						table.insert(total, a)
+					end
+				end
+			else
+				if fs.isDir("/rom/programs/"..a) == false then
+					table.insert(total, a)
+				end
+			end
+		end
+		for _, a in ipairs(localprog) do
+			if hidden == false then
+				local x, y = string.find(a, "[.]")
+
+				if x == 1 and y == 1 then
+				else
+					if fs.isDir("/usr/bin/"..a) == false then
+						table.insert(total, a)
+					end
+				end
+			else
+				if fs.isDir("/usr/bin/"..a) == false then
+					table.insert(total, a)
+				end
+			end
+		end
+		return total
+	end
+	function shell.getRunningProgram()
+		return shell.workPath
+	end
+	function shell.openTab()
+		return
+	end								--THESE WILL NOT BE SUPPORTED, UNFORTUNATELY
+	function shell.switchTab()
+		return
+	end
+	function shell.complete()
+		local t = {}
+		return t
+	end
+	function shell.completeProgram(prefix)
+		local pList = fs.list("/usr/bin/")
+		local total = {}
+
+		for _, a in ipairs(pList) do
+			local x, y = string.find(a, prefix)
+			if x == 1 then
+				local b = string.sub(a, y+1, #a)
+				table.insert(total, b)
+			end
+		end
+		return total
+	end
+	function shell.setCompletionFunction()
+		return false
+	end
+	function shell.getCompletionInfo()
+		return
+	end
+end
 
 
 
@@ -331,11 +493,11 @@ local function login(step)
 		else
 			for _, name in ipairs(usrData.usrName) do
 				if name == e then
-					_G.currentUsr = e
+					currentUsr = e
 					cUsrNmbr = _
 					login(2)
 				elseif e == "root" then
-					_G.currentUsr = e
+					currentUsr = e
 					cUsrNmbr = 0
 					login(2)
 				elseif _ == #usrData.usrName then
@@ -358,18 +520,18 @@ local function login(step)
 			term.setTextColor(col)
 			login(2)
 		else
-			p = sha.pbkdf2(p, _G.currentUsr, 10):toHex()
+			p = sha.pbkdf2(p, currentUsr, 10):toHex()
 			p = tostring(p)
 			local file = fs.open("/sys/.rootpw","r")
 			local rpw = file.readLine()
 			file.close()
-			if _G.currentUsr ~= "root" and p ~= usrData.password[cUsrNmbr] then
+			if currentUsr ~= "root" and p ~= usrData.password[cUsrNmbr] then
 				local col = term.getTextColor()
 				term.setTextColor(colors.red)
 				print("Oops, that didn't work! Let's try it again.")
 				term.setTextColor(col)
 				login(1)
-			elseif _G.currentUsr == "root" and p ~= rpw then
+			elseif currentUsr == "root" and p ~= rpw then
 				local col = term.getTextColor()
 				term.setTextColor(colors.red)
 				print("Oops, that didn't work! Let's try it again.")
@@ -377,14 +539,15 @@ local function login(step)
 				login(1)
 			else
 				--stuff
-				_G.currentDir = "/usr/".._G.currentUsr.."/home/"
-				--_G.vDir = "/usr/".._G.currentUsr.."/home/"
-				_G.currentUsr = _G.currentUsr
-				_G.currentDir = _G.currentDir
-				_G.currentPw = p
+				currentDir = "/usr/"..currentUsr.."/home/"
+				--vDir = "/usr/"..currentUsr.."/home/"
+				currentUsr = currentUsr
+				currentDir = currentDir
+				currentPw = p
 				--_G.currentPw = p
 				print("Success.")
 				--limitFunctions()
+				userHomeDir = "/usr/"..currentUsr.."/home/"
 				linuxShell()
 			end
 		end
@@ -394,133 +557,89 @@ end
 
 
 function limitFunctions()
-
 	fs.open = function(path, mode)
 		if mode ~= "a" or mode ~= "w" or mode ~= "r" or mode ~= "br" or mode ~= "bw" then
 			return nil
 		end
-		local a, b = string.find(path, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(path, userHomeDir)
 		local inhome = false
 		if a == nil then
 			inhome = false
 		else
 			inhome = true
 		end
-		if mode == "a" and _G.currentUsr ~= "root" and inhome == false or mode == "w" and _G.currentUsr ~= "root" and inhome == false or mode == "bw" and _G.currentUsr ~= "root" and inhome == false then
-			return false
-		elseif mode == "a" and _G.currentUsr == "root" or mode == "w" and _G.currentUsr == "root" or mode == "bw" and _G.currentUsr == "root" then
-			local c = oldOpen("/sys/.rootpw","r")
-			local rpw = c.readLine()
-			c.close()
-			--if _G.currentPw == rpw then
-			if _G.currentPw == rpw then
-				return oldOpen(path, mode)
-			else
-				return false
-			end
+		if mode == "a" and inhome == false or mode == "w" and inhome == false or mode == "bw" and inhome == false then
+			return fs.open(userHomeDir..path, mode)
 		elseif mode == "a" and inhome or mode == "w" and inhome or mode == "bw" and inhome then
-			return oldOpen(path, mode)
+			return fs.open(path, mode)
 		elseif mode == "r" or mode == "br" then
-			return oldOpen(path, mode)
+			return fs.open(path, mode)
 		end
 	end
 	fs.makeDir = function(path)
-		local a, b = string.find(path, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(path, userHomeDir)
 		local inhome = false
 		if a == nil then
 			inhome = false
 		else
 			inhome = true
 		end
-		if _G.currentUsr ~= "root" and inhome == false then
-			return false
-		elseif _G.currentUsr == "root" then
-			local c = oldOpen("/sys/.rootpw","r")
-			local rpw = c.readLine()
-			c.close()
-			--if _G.currentPw == rpw and fs.exists(path) == false then
-			if _G.currentPw == rpw and fs.exists(path) == false then
-				return oldmkdir(path)
-			--elseif _G.currentPw ~= rpw then
-			elseif _G.currentPw ~= rpw then
-				return false
-			elseif fs.exists(path) then
-				return "Folder/Files already exists."
-			end
+		if inhome == false then
+			return fs.makeDir(userHomeDir..path, mode)
 		elseif inhome then
 			if fs.exists(path) == false then
-				return oldmkdir(path)
+				return fs.makeDir(path)
 			else
 				return "Folder/File already exists."
 			end
 		end
 	end
 	fs.move = function(oldPath, newPath)
-		local a, b = string.find(oldPath, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(oldPath, userHomeDir)
 		local inhome = false
 		if a == nil then
 			inhome = false
 		else
 			inhome = true
 		end
-		local a, b = string.find(newPath, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(newPath, userHomeDir)
 		local tohome = false
 		if a == nil then
 			tohome = false
 		else
 			tohome = true
 		end
-		if _G.currentUsr ~= "root" and inhome == false or _G.currentUsr ~= "root" and tohome == false then
-			return false
-		elseif _G.currentUsr == "root" then
-			local c = oldOpen("/sys/.rootpw","r")
-			local rpw = c.readLine()
-			c.close()
-			--if _G.currentPw == rpw and fs.exists(oldPath) then
-			if _G.currentPw == rpw and fs.exists(oldPath) then
-				return oldMove(oldPath, newPath)
-			elseif fs.exists(oldPath) == false then
-				return "Folder/File does not exist."
+		if inhome == false or tohome == false then
+			if inhome == false and tohome then
+				return fs.move(userHomeDir..oldPath, newPath)
+			elseif tohome == false and inhome then
+				return fs.move(oldPath, userHomeDir..newPath)
 			else
 				return false
 			end
 		elseif inhome and tohome then
-			if fs.exists(inhome) and fs.exists(tohome) == false then
-				return oldMove(path)
-			elseif fs.exists(inhome) == false then
+			if fs.exists(oldPath) and fs.exists(newPath) == false then
+				return fs.move(oldPath, newPath)
+			elseif fs.exists(oldPath) == false then
 				return "Folder/File does not exist."
-			elseif fs.exists(tohome) then
+			elseif fs.exists(newPath) then
 				return "Folder/File already exists."
 			end
 		end
 	end
 	fs.copy = function(oldPath, newPath)
-		local a, b = string.find(newPath, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(newPath, userHomeDir)
 		local tohome = false
 		if a == nil then
 			tohome = false
 		else
 			tohome = true
 		end
-		if _G.currentUsr ~= "root" and tohome == false then
-			return false
-		elseif _G.currentUsr == "root" then
-			local c = oldOpen("/sys/.rootpw","r")
-			local rpw = c.readLine()
-			c.close()
-			--if _G.currentPw == rpw and fs.exists(oldPath) and fs.exists(newPath) == false then
-			if _G.currentPw == rpw and fs.exists(oldPath) and fs.exists(newPath) == false then
-				return oldOpen(oldPath, newPath)
-			elseif fs.exists(oldPath) == false then
-				return "Folder/File does not exist."
-			elseif fs.exists(newPath) then
-				return "Folder/File already exists."
-			else
-				return false
-			end
+		if tohome == false then
+			return fs.copy(oldPath, userHomeDir..newPath)
 		elseif tohome then
 			if fs.exists(oldPath) and fs.exists(newPath) == false then
-				return oldCopy(oldPath, newPath)
+				return fs.copy(oldPath, newPath)
 			elseif fs.exists(oldPath) == false then
 				return "Folder/File does not exist."
 			elseif fs.exists(newPath) then
@@ -529,38 +648,26 @@ function limitFunctions()
 		end
 	end
 	fs.delete = function(path)
-		local a, b = string.find(path, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(path, userHomeDir)
 		local inhome = false
 		if a == nil then
 			inhome = false
 		else
 			inhome = true
 		end
-		if _G.currentUsr ~= "root" and inhome == false then
-			return false
-		elseif _G.currentUsr == "root" then
-			local c = oldOpen("/sys/.rootpw","r")
-			local rpw = c.readLine()
-			c.close()
-			--if _G.currentPw == rpw and fs.exists(path) then
-			if _G.currentPw == rpw and fs.exists(path) then
-				return oldDelete(path)
-			elseif fs.exists(path) == false then
-				return "Folder/File does not exist."
-			else
-				return false
-			end
+		if inhome == false then
+			return fs.delete(userHomeDir..path)
 		elseif inhome then
 			if fs.exists(path) then
-				return oldDelete(path)
+				return fs.delete(path)
 			elseif fs.exists(path) == false then
 				return "Folder/File does not exist."
 			end
 		end
 	end
-	oldCUsr = _G.currentUsr
-	oldCPw = _G.currentPw
-	oldCDir = _G.currentDir
+	oldCUsr = currentUsr
+	oldCPw = currentPw
+	oldCDir = currentDir
 	--[[local sandBox = setmetatable({}, {
 		__index = _G
 	})]]
@@ -577,9 +684,9 @@ local function restoreFunctions()
 	fs.delete = oldDelete
 	fs.move = oldMove
 	fs.copy = oldCopy
-	_G.currentUsr = oldCUsr
-	_G.currentPw = oldCPw
-	_G.currentDir = oldCDir
+	currentUsr = oldCUsr
+	currentPw = oldCPw
+	currentDir = oldCDir
 end
 
 function linuxShell()
@@ -588,18 +695,18 @@ function linuxShell()
 	local d = "/"
 
 	while loop do
-		_G.currentDir = _G.currentDir
+		currentDir = currentDir
 		local x, y = term.getCursorPos()
 		term.setCursorPos(1,y)
 		term.setTextColor(colors.yellow)
-		local a, b = string.find(_G.currentDir, "/usr/".._G.currentUsr.."/home/")
+		local a, b = string.find(currentDir, "/usr/"..currentUsr.."/home/")
 		if a then
-			d = string.gsub(_G.currentDir, "/usr/".._G.currentUsr.."/home/", "~/", 1)
+			d = string.gsub(currentDir, "/usr/"..currentUsr.."/home/", "~/", 1)
 		else
-			d = _G.currentDir
+			d = currentDir
 		end
 		
-		term.write(_G.currentUsr.."@ ")
+		term.write(currentUsr.."@ ")
 		term.setTextColor(colors.blue)
 		term.write(d.."> ")
 		term.setTextColor(colors.white)
@@ -626,7 +733,7 @@ function linuxShell()
 					local x, y = string.find(a, "~/")
 					if x == 1 and y == 2 then
 						local c = string.sub(a, 3, #a)
-						a = "/usr/".._G.currentUsr.."/home/"..c
+						a = "/usr/"..currentUsr.."/home/"..c
 					end
 					table.insert(args, a)
 					arg = string.sub(arg, j+1, #arg)
@@ -634,13 +741,13 @@ function linuxShell()
 					local i, j = string.find(arg, "~/")
 					if i == 1 and j == 2 then
 						local c = string.sub(arg, 3, #arg)
-						arg = "/usr/".._G.currentUsr.."/home/"..c
+						arg = "/usr/"..currentUsr.."/home/"..c
 					end
 					table.insert(args, arg)
 				end
 			until i == nil
 		end
-		local sudo = false
+		sudo = false
 		if command == "sudo" then
 			if #args > 0 then
 				sudo = true
@@ -651,21 +758,14 @@ function linuxShell()
 				command = " "
 			end
 		end
+		if currentUsr == "root" then
+			sudo = true
+		end
 
-		if fs.exists("/usr/bin/"..command) and command ~= "cd" then
+		if fs.exists("/usr/bin/"..command) and fs.exists(currentDir..command) == false then
 			if sudo == false then
-				fs.copy("/usr/bin/"..command, "/tmp/running")
-				local file = fs.open("/tmp/running", "r")
-				local inhalt = file.readAll()
-				file.close()
-				local file = fs.open("/tmp/running", "w")
-				file.write("local function init()\n")
-				file.write(inhalt.."\n")
-				file.write("end\n")
-				file.write("init()")
-				file.close()
 				local a = loadfile("/usr/bin/"..command)
-
+				setShellAPI("/usr/bin/")
 				limitFunctions()
 				local e = getfenv(init)
 				local sandBox = createReadOnly(e)
@@ -678,42 +778,80 @@ function linuxShell()
 					print(err)
 					term.setTextColor(col)
 				end
-				fs.delete("/tmp/running")
 			elseif sudo == true then
-				sudo = false
-				term.write("Please enter root password: ")
-				local p = limitReadPw(99)
-				print("")
-				local file = fs.open("/sys/.rootpw", "r")
-				local rpw = file.readLine()
-				file.close()
-				p = sha.pbkdf2(p, "root", 10):toHex()
-				p = tostring(p)
-				if #p < 1 or p ~= rpw then
+				if currentUsr ~= "root" then
+					sudo = false
+					term.write("Please enter root password: ")
+					local p = limitReadPw(99)
+					print("")
+					local file = fs.open("/sys/.rootpw", "r")
+					local rpw = file.readLine()
+					file.close()
+					p = sha.pbkdf2(p, "root", 10):toHex()
+					p = tostring(p)
+					if #p < 1 or p ~= rpw then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Wrong password.")
+						term.setTextColor(c)
+					elseif p == rpw then
+						local a = loadfile("/usr/bin/"..command)
+						setShellAPI("/usr/bin/")
+						local oldCUsr = currentUsr
+						local oldCPw = currentPw
+						currentUsr = "root"
+						currentPw = rpw
+						local e = getfenv(init)
+						local sandBox = createReadOnly(e)
+						setfenv(a, sandBox)
+						local ok, err = pcall(a, unpack(args))
+						if ok == false or ok == nil then
+							local col = term.getTextColor()
+							term.setTextColor(colors.red)
+							print(err)
+							print("Have you tried 'sudo'?")
+							term.setTextColor(col)
+						end
+						currentUsr = oldCUsr
+						currentPw = oldCPw
+					end
+				elseif currentUsr == "root" then
+					sudo = false
+					local file = fs.open("/sys/.rootpw", "r")
+					if file == nil then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Error: .rootpw not found.")
+					end
+					local rpw = file.readLine()
+					file.close()
+					if p ~= rpw then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Wrong password.")
+					else
+						local a = loadfile("/usr/bin/"..command)
+						setShellAPI("/usr/bin/")
+						local oldCUsr = currentUsr
+						local oldCPw = currentPw
+						local e = getfenv(init)
+						local sandBox = createReadOnly(e)
+						setfenv(a, sandBox)
+						local ok, err = pcall(a, unpack(args))
+						if ok == false or ok == nil then
+							local col = term.getTextColor()
+							term.setTextColor(colors.red)
+							print(err)
+							print("Have you tried 'sudo'?")
+							term.setTextColor(col)
+						end
+						currentUsr = oldCUsr
+						currentPw = oldCPw
+					end
+				else
 					local c = term.getTextColor()
 					term.setTextColor(colors.red)
-					print("Wrong password.")
-					term.setTextColor(c)
-				elseif p == rpw then
-					local a = loadfile("/usr/bin/"..command)
-					limitFunctions()
-					local oldCUsr = _G.currentUsr
-					local oldCPw = _G.currentPw
-					_G.currentUsr = "root"
-					_G.currentPw = rpw
-					local e = getfenv(init)
-					local sandBox = createReadOnly(e)
-					setfenv(a, sandBox)
-					local ok, err = pcall(a, unpack(args))
-					restoreFunctions()
-					if ok == false or ok == nil then
-						local col = term.getTextColor()
-						term.setTextColor(colors.red)
-						print(err)
-						term.setTextColor(col)
-					end
-					_G.currentUsr = oldCUsr
-					_G.currentPw = oldCPw
+					print("Error: User not found. ("..currentUsr..")")
 				end
 			end
 --[[							NOT YET IMPLEMENTED:
@@ -790,18 +928,112 @@ function linuxShell()
 
 
 
-		elseif command == "cd" then
+		elseif command == "cd" and command ~= nil or command ~= "" and command == "cd" then
+			
 			if #args < 1 or #args > 1 then
 				print("Usage:")
 				print("		cd <path>")
 			else
 				changeDir(args[1])
 			end
-		elseif fs.exists("/usr/bin/"..command) == false then
+		elseif fs.exists(currentDir..command) then
+			if sudo == false then
+				local a = loadfile(currentDir..command)
+				setShellAPI(currentDir)
+				limitFunctions()
+				local e = getfenv(init)
+				local sandBox = createReadOnly(e)
+				setfenv(a, sandBox)
+				local ok, err = pcall(a, unpack(args))
+				restoreFunctions()
+				if ok == false or ok == nil then
+					local col = term.getTextColor()
+					term.setTextColor(colors.red)
+					print(err)
+					term.setTextColor(col)
+				end
+			elseif sudo == true then
+				if currentUsr ~= "root" then
+					sudo = false
+					term.write("Please enter root password: ")
+					local p = limitReadPw(99)
+					print("")
+					local file = fs.open("/sys/.rootpw", "r")
+					local rpw = file.readLine()
+					file.close()
+					p = sha.pbkdf2(p, "root", 10):toHex()
+					p = tostring(p)
+					if #p < 1 or p ~= rpw then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Wrong password.")
+						term.setTextColor(c)
+					elseif p == rpw then
+						local a = loadfile(currentDir..command)
+						setShellAPI(currentDir)
+						local oldCUsr = currentUsr
+						local oldCPw = currentPw
+						currentUsr = "root"
+						currentPw = rpw
+						local e = getfenv(init)
+						local sandBox = createReadOnly(e)
+						setfenv(a, sandBox)
+						local ok, err = pcall(a, unpack(args))
+						if ok == false or ok == nil then
+							local col = term.getTextColor()
+							term.setTextColor(colors.red)
+							print(err)
+							print("Have you tried 'sudo'?")
+							term.setTextColor(col)
+						end
+						currentUsr = oldCUsr
+						currentPw = oldCPw
+					end
+				elseif currentUsr == "root" then
+					sudo = false
+					local file = fs.open("/sys/.rootpw", "r")
+					if file == nil then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Error: .rootpw not found.")
+					end
+					local rpw = file.readLine()
+					file.close()
+					if p ~= rpw then
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Wrong password.")
+					else
+						local a = loadfile(currentDir..command)
+						setShellAPI(currentDir)
+						local oldCUsr = currentUsr
+						local oldCPw = currentPw
+						local e = getfenv(init)
+						local sandBox = createReadOnly(e)
+						setfenv(a, sandBox)
+						local ok, err = pcall(a, unpack(args))
+						if ok == false or ok == nil then
+							local col = term.getTextColor()
+							term.setTextColor(colors.red)
+							print(err)
+							print("Have you tried 'sudo'?")
+							term.setTextColor(col)
+						end
+						currentUsr = oldCUsr
+						currentPw = oldCPw
+					end
+				else
+					local c = term.getTextColor()
+					term.setTextColor(colors.red)
+					print("Error: User not found. ("..currentUsr..")")
+				end
+			end
+		elseif fs.exists("/usr/bin/"..command) == false and fs.exists(currentDir..command) == false then
 			local col = term.getTextColor()
 			term.setTextColor(colors.red)
 			print("Command not found.")
 			term.setTextColor(col)
+		elseif command == nil or command == "" then
 		end
 		
 	end
