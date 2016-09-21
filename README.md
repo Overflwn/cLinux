@@ -1,6 +1,6 @@
 # cLinux - Linux-like ComputerCraft OS
-### Made by Piorjade
-### Version {version}
+### Made by Piorjade and thecrimulo (list to be continued)
+### Version 0.4
 -----------
 ### What is cLinux about
 cLinux is a Work-in-progress Operating System for ComputerCraft made by Piorjade.
