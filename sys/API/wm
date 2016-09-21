@@ -9,22 +9,28 @@
 			creates fullscreen windows
 ]]
 
-windows = {} --Stores the path of the file as key, and the handler/window as value
+windows = {
+	name = {},
+	window = {}
+} --Stores the path of the file as key, and the handler/window as value
 
 function createWindow(path, maxX, maxY, terminal) --path = the file, maxX & maxY = maximum size of the parent window, terminal = the parent window
-	if windows[path] ~= nil then --if a window of the same path is already existing, then delete it and make a new one
-		windows[path] = nil
-		windows[path] = window.create(terminal, 1, 1, maxX, maxY) --creates a fullscreen window
-	else
-		windows[path] = window.create(terminal, 1, 1, maxX, maxY)
+	for _, name in ipairs(windows.name) do
+		if name == path then
+			windows.name[_] = nil
+			windows.window[_] = nil
+		end
 	end
+	table.insert(windows.window, window.create(terminal, 1, 1, maxX, maxY, false)) --creates a fullscreen window
+	table.insert(windows.name, path)
+	
 end
 
 function getWindow(path)
 	local found = false
-	for _, a in pairs(windows) do
-		if _ == path then --If a window with the same path is found, return it to the caller
-			return a
+	for _, a in ipairs(windows.name) do
+		if a == path then --If a window with the same path is found, return it to the caller
+			return windows.window[_]
 		else
 			found = false
 		end
@@ -32,7 +38,16 @@ function getWindow(path)
 	if found == false then return false end
 end
 
+function getWindows()
+	return windows 			--for whatever reason you need it
+end
+
 function deleteWindow(path)
-	windows[path] = nil 			--self explaining
+	for _, a in ipairs(windows.name) do
+		if a == path then
+			windows.name[path] = nil 			--self explaining
+			windows.window[path] = nil
+		end
+	end
 end
 

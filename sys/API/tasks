@@ -13,75 +13,130 @@
 			This taskmanager does NOT allow multiple tasks of the same path.
 ]]
 
-tasks = {
+--task = {}
+
+task = {
+	name = {},
+	func = {}
 }
-
-
-local function makeTask(func, args)
-	local function createTask(f)
-		local f = f
-		local tArgs = args 					--This is to save the arguments, so that we don't have to run the coroutine to give it the arguments.
-		coroutine.yield()
-		f(unpack(tArgs))
-	end
-	local f = func
-	local a = args
-	local mergedFunc = createTask(f, args)
-	return mergedFunc
-end
-
-function createNewTask(path, ...)
-	local tArgs = {...}
-
-	if tasks[path] == nil then
-		local file = loadfile(path)
-		local t = makeTask(file, tArgs)
-		tasks[path] = coroutine.create(t)
-		coroutine.resume(tasks[path]) -- The coroutine now has stopped at "coroutine.yield", which means it has the args loaded
-	else --This deletes the old task and recreates it from the beginning
-		tasks[path] = nil --deleted, it shouldn't matter if the window manager doesn't delete it's window
-		local file = loadfile(path)
-		local t = makeTask(file, tArgs) --The same as above
-		tasks[path] = coroutine.create(t)
-		coroutine.resume(tasks[path])
-	end
-end
-
-function killTask(path)
-	tasks[path] = nil --Self explaining, BUT you have to (if you don't use my window manager) clear that task inside the window manager again
-end
 
 function listRunningTasks() --Returns a table with every (full path) file, that's currently yielding (= not finished, but waits for resume)
 	local x = {} --Stores the paths
-	for _, a in pairs(tasks) do
-		local b = coroutine.status(tasks[_])
+	local dead = {} --Stores dead coroutines
+	for _, a in ipairs(task.name) do
+		local b = coroutine.status(task.func[_])
 		if b == "suspended" then
-			table.insert(x, _) --If the coroutine is not finished (= yield), then insert it into the table
+			table.insert(x, a) --If the coroutine is not finished (= yield), then insert it into the table
+		elseif b == "dead" then
+			table.insert(dead, a) --self explaining
 		end
 	end
-	return x --returns with the table
+	return x, dead --returns with the tables
 end
+
+local function makeTask(func, args)
+	local function createTask(f, args)
+		local o = function()
+			local func = f
+			local tArgs = args 					--This is to save the arguments, so that we don't have to run the coroutine to give it the arguments.
+			coroutine.yield()
+			func(unpack(tArgs))
+		end
+		return o
+	end
+	local mergedFunc = createTask(func, args)
+	return mergedFunc
+end
+
+function createNewTask(path, ...) --makes task out of file directly (<- this wouldn't allow me to limit my FS API, sadly)
+	local tArgs = {...}
+
+	if task[path] == nil then
+		local file = loadfile(path)
+		local t = makeTask(file, tArgs)
+		task[path] = coroutine.create(t)
+		coroutine.resume(task[path]) -- The coroutine now has stopped at "coroutine.yield", which means it has the args loaded
+		local x, dead = listRunningTasks()
+		return x, dead
+	else --This deletes the old task and recreates it from the beginning
+		task[path] = nil --deleted, it shouldn't matter if the window manager doesn't delete it's window
+		local file = loadfile(path)
+		local t = makeTask(file, tArgs) --The same as above
+		task[path] = coroutine.create(t)
+		coroutine.resume(task[path])
+		local x, dead = listRunningTasks()
+		return x, dead
+	end
+end
+
+function createOfFunc(func, argsInTable, path) --Creates a task out of the given function, meaning that I can make a function, which limits the FS API
+	local tArgs = argsInTable
+	for _, name in ipairs(task.name) do
+		if name == path then
+			task.name[_] = nil
+		end
+	end
+	local t = makeTask(func, tArgs)
+	table.insert(task.name, path)
+	table.insert(task.func, coroutine.create(t))
+	for _, name in ipairs(task.name) do
+		if name == path then
+			coroutine.resume(task.func[_])
+		end
+	end
+	local x, dead = listRunningTasks()
+	return x, dead
+end
+
+function killTask(path)
+	for _, name in ipairs(task.name) do
+		if name == path then
+			task.func[_] = nil
+			task.name[_] = nil --Self explaining, BUT you have to (if you don't use my window manager) clear that task inside the window manager again
+		end
+	end
+	local x, dead = listRunningTasks()
+	return x, dead
+end
+
 
 function resumeAll(args) --Resumes ALL yielding tasks (this is useful for tasks, which should run in the background) with the args
 	local dead = {} --this table stores the paths to all dead tasks (= finished or crashed tasks)
-	for _, a in pairs(tasks) do
-		local b = coroutine.status(tasks[_])
+	for _, a in pairs(task.name) do
+		local b = coroutine.status(task.func[_])
 		if b == "suspended" then
-			coroutine.resume(tasks[_], unpack(args)) --resumes the coroutine with the args as argument (os.pullEvent, for example)
+			coroutine.resume(task.func[_], unpack(args)) --resumes the coroutine with the args as argument (os.pullEvent, for example)
 		elseif b == "dead" then
-			table.insert(dead, _) --inserts the path of the dead coroutine to the table dead
+			table.insert(dead, a) --inserts the path of the dead coroutine to the table dead
 		end
 	end
 
 	return dead --returns the table with all the dead coroutines, just in case if the OS / DE wants to delete them of show them in an UI
 end
 
-function resume(path, args)
-	local b = coroutine.status(tasks[path])
-	if b == "suspended" then
-		coroutine.resume(tasks[_], unpack(args)) --Resumes the yielding coroutines with the given args
-	elseif b == "dead" then
-		return "dead" -- returns "dead" to the caller, as the wanted task is dead.
+function resume(path, args, newWindow, oldWindow)
+
+	if args == nil then
+		args = {}
+	end
+	for _, name in ipairs(task.name) do
+		if name == path then
+			local b = coroutine.status(task.func[_])
+			if b == "suspended" then
+				--newWindow.setVisible(true)
+				term.redirect(newWindow)
+				local ok, err = pcall(coroutine.resume(task.func[_], unpack(args))) --Resumes the yielding coroutines with the given args
+				oldWindow.redraw()
+				term.redirect(oldWindow)
+				if ok == false then
+					task.name[_] = nil
+					task.func[_] = nil
+				end
+				local x, dead = listRunningTasks()
+				return x, dead --Returns an updated list of the tasks
+			elseif b == "dead" then
+				return "dead" -- returns "dead" to the caller, as the wanted task is dead.
+			end
+		end
 	end
 end
-

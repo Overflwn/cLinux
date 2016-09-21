@@ -79,6 +79,7 @@ local function drawCrash(err)
 	term.setBackgroundColor(colors.blue)
 	term.setTextColor(colors.white)
 	term.clear()
+	print(err)
 	local goback = #err/2
 	local msg = "Whoops, cLinux crashed!"
 	term.setCursorPos(26-#msg/2, 8)

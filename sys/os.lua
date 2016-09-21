@@ -1,4 +1,3 @@
-
 local tTables = {}
 local tReadOnly = {}
 local native_rawset = rawset
@@ -41,7 +40,17 @@ local oldMove = fs.move            ------- This should run outside of init(), to
 local oldCopy = fs.copy
 local oldDelete = fs.delete
 
+rawE = {}
+rE = {}
 
+local function getEvents()
+	while true do
+		rawE = {os.pullEvent}
+		if rawE[1] == not "char" or rawE[1] == not "key" then
+			rE = rawE
+		end
+	end
+end
 
 
 local function init()
@@ -166,7 +175,11 @@ end
 local c = {
 	running = {},
 	dead = {},
+	fg = {}
 }
+
+
+local w = {}
 
 --Funktionen
 
@@ -178,7 +191,7 @@ local c = {
 
 --[[
 										DUMMYFILES
-		Please add your workarounds for called functions here, which are not available
+		Please add your workarounds for called functions into setShellAPI, which are not available
 		due to dumping CraftOS
 
 		For example the Shell API
@@ -348,8 +361,7 @@ end
 
 
 
-
-
+local str = "" --used for limitRead functions
 
 
 
@@ -556,7 +568,10 @@ local function login(step)
 				print("Success.")
 				--limitFunctions()
 				userHomeDir = "/usr/"..currentUsr.."/home/"
-				linuxShell()
+				parallel.waitForAny(
+					linuxShell(),
+					getEvents()
+				)
 			end
 		end
 	end
@@ -698,409 +713,474 @@ function linuxShell()
 
 	while loop do
 		currentDir = currentDir
-		local x, y = term.getCursorPos()
-		term.setCursorPos(1,y)
-		term.setTextColor(colors.yellow)
-		local a, b = string.find(currentDir, "/usr/"..currentUsr.."/home/")
-		if a then
-			d = string.gsub(currentDir, "/usr/"..currentUsr.."/home/", "~/", 1)
-		else
-			d = currentDir
+
+		--[[
+					EXPERIMENTAL PART
+		]]
+
+
+
+		c.running, c.dead = tasks.listRunningTasks()
+		w = wm.getWindows()
+		local rProg = ""								--Only ONE task can be rProg (and obviously true in c.fg)
+		c.running, c.dead = tasks.listRunningTasks()
+		for _, a in ipairs(c.dead) do
+			print(a)
 		end
-		
-		term.write(currentUsr.."@ ")
-		term.setTextColor(colors.blue)
-		term.write(d.."> ")
-		term.setTextColor(colors.white)
-		term.setCursorBlink(true)
-		local command = limitRead(99)
-		print("")
-		local args = {}
-		local arg = ""
-		local i, j = string.find(command, " ")
-		if i == nil then
-			command = command
-		else
-			arg = string.sub(command, j+1, #command)
-			command = string.sub(command, 1, i-1)
-			
-		end
-		
-		if arg == nil or arg == "" then
-			arg = ""
-		else
-			repeat
-				local i, j = string.find(arg, " ")
-				if i ~= nil then
-					local a = string.sub(arg, 1, i-1)
-					local x, y = string.find(a, "~/")
-					if x == 1 and y == 2 then
-						local c = string.sub(a, 3, #a)
-						a = "/usr/"..currentUsr.."/home/"..c
-					end
-					table.insert(args, a)
-					arg = string.sub(arg, j+1, #arg)
-				else
-					local i, j = string.find(arg, "~/")
-					if i == 1 and j == 2 then
-						local c = string.sub(arg, 3, #arg)
-						arg = "/usr/"..currentUsr.."/home/"..c
-					end
-					table.insert(args, arg)
-				end
-			until i == nil
-		end
-		sudo = false
-		if command == "sudo" then
-			if #args > 0 then
-				sudo = true
-				command = args[1]
-				table.remove(args, 1)
+		for _, a in pairs(c.running) do
+			if c.fg[_] == "true" then
+				rProg = _
 			else
-				sudo = false
-				command = " "
+				rProg = ""
 			end
-		end
-		if currentUsr == "root" then
-			sudo = true
 		end
 
-		local main = {
-			"mkdir",
-			"cd",
-			"rm",
-			"mv",
-			"ls",
-			"clear",
-			"packman",
-		}
-		local newWindow = true
-		for _, a in ipairs(main) do
-			if command == a then
-				newWindow = false
-				break
+
+		if rProg == "" then 											--Run the shell normally BUT still run every task in the background after reading the command
+			
+		--[[
+					EXPERIMENTAL PART END
+		]]
+
+
+
+
+			local x, y = term.getCursorPos()
+			term.setCursorPos(1,y)
+			
+			local a, b = string.find(currentDir, "/usr/"..currentUsr.."/home/")
+			if a then
+				d = string.gsub(currentDir, "/usr/"..currentUsr.."/home/", "~/", 1)
 			else
-				newWindow = true
+				d = currentDir
 			end
-		end
-		if fs.exists("/usr/bin/"..command) and fs.exists(currentDir..command) == false then
-			if sudo == false then
-				local a, err = loadfile("/usr/bin/"..command)
-				if a == nil then
-					local col = term.getTextColor()
-					term.setTextColor(colors.red)
-					print(err)
-					term.setTextColor(col)
+			
+			--[[
+				EXPERIMENTAL PART
+			]]
+
+			for _, a in ipairs(c.running) do
+				local d = wm.getWindow(a)
+				print(_)
+				print(a)
+				print(c)
+				if d == false then print("no window") end
+				if d == false then
+					c.running, c.dead = tasks.resume(a, unpack(rE), lTerm, lTerm)
 				else
-					setShellAPI("/usr/bin/")
-					limitFunctions()
-					local e = getfenv(init)
-					local sandBox = createReadOnly(e)
-					setfenv(a, sandBox)
-					local ok, err = pcall(a, unpack(args))
-					restoreFunctions()
-					if ok == false then
+					c.running, c.dead = tasks.resume(a, unpack(rE), d, lTerm)
+				end
+				
+			end
+
+			--[[
+				EXPERIMENTAL PART END
+			]]
+			term.setTextColor(colors.yellow)
+			term.write(currentUsr.."@ ")
+			term.setTextColor(colors.blue)
+			term.write(d.."> ")
+			term.setTextColor(colors.white)
+			term.setCursorBlink(true)
+
+
+
+
+			local command = limitRead(99)
+			print("")
+
+
+
+			local args = {}
+			local arg = ""
+			local i, j = string.find(command, " ")
+			if i == nil then
+				command = command
+			else
+				arg = string.sub(command, j+1, #command)
+				command = string.sub(command, 1, i-1)
+				
+			end
+			
+			if arg == nil or arg == "" then
+				arg = ""
+			else
+				repeat
+					local i, j = string.find(arg, " ")
+					if i ~= nil then
+						local a = string.sub(arg, 1, i-1)
+						local x, y = string.find(a, "~/")
+						if x == 1 and y == 2 then
+							local c = string.sub(a, 3, #a)
+							a = "/usr/"..currentUsr.."/home/"..c
+						end
+						table.insert(args, a)
+						arg = string.sub(arg, j+1, #arg)
+					else
+						local i, j = string.find(arg, "~/")
+						if i == 1 and j == 2 then
+							local c = string.sub(arg, 3, #arg)
+							arg = "/usr/"..currentUsr.."/home/"..c
+						end
+						table.insert(args, arg)
+					end
+				until i == nil
+			end
+			sudo = false
+			if command == "sudo" then
+				if #args > 0 then
+					sudo = true
+					command = args[1]
+					table.remove(args, 1)
+				else
+					sudo = false
+					command = " "
+				end
+			end
+			if currentUsr == "root" then
+				sudo = true
+			end
+
+			local main = {
+				"mkdir",
+				"cd",
+				"rm",
+				"mv",
+				"ls",
+				"clear",
+				"packman",
+			}
+			local newWindow = true
+			for _, a in ipairs(main) do
+				if command == a then
+					newWindow = false
+					break
+				else
+					newWindow = true
+				end
+			end
+			if fs.exists("/usr/bin/"..command) and fs.exists(currentDir..command) == false then
+				local m = false --if the command is a main command from above
+				for _, a in ipairs(main) do
+					if a == command then
+						m = true
+						break
+					end
+				end
+				if sudo == false then
+					local a, err = loadfile("/usr/bin/"..command)
+					if a == nil then
 						local col = term.getTextColor()
 						term.setTextColor(colors.red)
 						print(err)
-						print("Have you tried 'sudo'?")
 						term.setTextColor(col)
-					end
-				end
-				
-				
-			elseif sudo == true then
-				if currentUsr ~= "root" then
-					sudo = false
-					term.write("Please enter root password: ")
-					local p = limitReadPw(99)
-					print("")
-					local file = fs.open("/sys/.rootpw", "r")
-					local rpw = file.readLine()
-					file.close()
-					p = sha.pbkdf2(p, "root", 10):toHex()
-					p = tostring(p)
-					if #p < 1 or p ~= rpw then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Wrong password.")
-						term.setTextColor(c)
-					elseif p == rpw then
-						local a, err = loadfile("/usr/bin/"..command)
-						if a == nil then
-							local col = term.getTextColor()
-							term.setTextColor(colors.red)
-							print(err)
-							term.setTextColor(col)
-						else
-							setShellAPI("/usr/bin/")
-							local oldCUsr = currentUsr
-							local oldCPw = currentPw
-							currentUsr = "root"
-							currentPw = rpw
-							local e = getfenv(init)
-							local sandBox = createReadOnly(e)
-							setfenv(a, sandBox)
-							local ok, err = pcall(a, unpack(args))
-							if ok == false then
-								local col = term.getTextColor()
-								term.setTextColor(colors.red)
-								print(err)
-								
-								term.setTextColor(col)
-							end
-							currentUsr = oldCUsr
-							currentPw = oldCPw
-						end
-					end
-				elseif currentUsr == "root" then
-					sudo = false
-					local file = fs.open("/sys/.rootpw", "r")
-					if file == nil then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Error: .rootpw not found.")
-					end
-					local rpw = file.readLine()
-					file.close()
-					if currentPw ~= rpw then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Wrong password.")
 					else
-						local a, err = loadfile("/usr/bin/"..command)
-						if a == nil then
-							local col = term.getTextColor()
-							term.setTextColor(colors.red)
-							print(err)
-							term.setTextColor(col)
-						else
+						if m then
 							setShellAPI("/usr/bin/")
-							local oldCUsr = currentUsr
-							local oldCPw = currentPw
+							limitFunctions()
 							local e = getfenv(init)
 							local sandBox = createReadOnly(e)
 							setfenv(a, sandBox)
 							local ok, err = pcall(a, unpack(args))
-							if ok == false or ok == nil then
+							restoreFunctions()
+							if ok == false then
 								local col = term.getTextColor()
 								term.setTextColor(colors.red)
 								print(err)
 								print("Have you tried 'sudo'?")
 								term.setTextColor(col)
 							end
-							currentUsr = oldCUsr
-							currentPw = oldCPw
+						elseif m == false then
+							local x, y = term.getSize(term.current())
+							wm.createWindow("/usr/bin/"..command, x, y, osWindow)
+							local function go(func, fArgs)
+								--term.redirect(win)
+								a = func
+								args = fArgs
+								setShellAPI("/usr/bin/")
+								limitFunctions()
+								local e = getfenv(init)
+								local sandBox = createReadOnly(e)
+								setfenv(a, sandBox)
+								local ok, err = pcall(a, unpack(args))
+								restoreFunctions()
+								--osWindow.redraw()
+								--term.redirect(osWindow)
+								if ok == false then
+									local col = term.getTextColor()
+									term.setTextColor(colors.red)
+									print(err)
+									print("Have you tried 'sudo'?")
+									term.setTextColor(col)
+								end
+							end
+							local eArgs = {}
+							eArgs[1] = a
+							eArgs[2] = args
+							c.running, c.dead = tasks.createOfFunc(go, eArgs, "/usr/bin/"..command)
+							
 						end
+						
 					end
-				else
-					local c = term.getTextColor()
-					term.setTextColor(colors.red)
-					print("Error: User not found. ("..currentUsr..")")
+					
+					
+				elseif sudo == true then
+					if currentUsr ~= "root" then
+						sudo = false
+						term.write("Please enter root password: ")
+						local p = limitReadPw(99)
+						print("")
+						local file = fs.open("/sys/.rootpw", "r")
+						local rpw = file.readLine()
+						file.close()
+						p = sha.pbkdf2(p, "root", 10):toHex()
+						p = tostring(p)
+						if #p < 1 or p ~= rpw then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Wrong password.")
+							term.setTextColor(c)
+						elseif p == rpw then
+							local a, err = loadfile("/usr/bin/"..command)
+							if a == nil then
+								local col = term.getTextColor()
+								term.setTextColor(colors.red)
+								print(err)
+								term.setTextColor(col)
+							else
+								setShellAPI("/usr/bin/")
+								local oldCUsr = currentUsr
+								local oldCPw = currentPw
+								currentUsr = "root"
+								currentPw = rpw
+								local e = getfenv(init)
+								local sandBox = createReadOnly(e)
+								setfenv(a, sandBox)
+								local ok, err = pcall(a, unpack(args))
+								if ok == false then
+									local col = term.getTextColor()
+									term.setTextColor(colors.red)
+									print(err)
+									
+									term.setTextColor(col)
+								end
+								currentUsr = oldCUsr
+								currentPw = oldCPw
+							end
+						end
+					elseif currentUsr == "root" then
+						sudo = false
+						local file = fs.open("/sys/.rootpw", "r")
+						if file == nil then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Error: .rootpw not found.")
+						end
+						local rpw = file.readLine()
+						file.close()
+						if currentPw ~= rpw then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Wrong password.")
+						else
+							local a, err = loadfile("/usr/bin/"..command)
+							if a == nil then
+								local col = term.getTextColor()
+								term.setTextColor(colors.red)
+								print(err)
+								term.setTextColor(col)
+							else
+								setShellAPI("/usr/bin/")
+								local oldCUsr = currentUsr
+								local oldCPw = currentPw
+								local e = getfenv(init)
+								local sandBox = createReadOnly(e)
+								setfenv(a, sandBox)
+								local ok, err = pcall(a, unpack(args))
+								if ok == false or ok == nil then
+									local col = term.getTextColor()
+									term.setTextColor(colors.red)
+									print(err)
+									print("Have you tried 'sudo'?")
+									term.setTextColor(col)
+								end
+								currentUsr = oldCUsr
+								currentPw = oldCPw
+							end
+						end
+					else
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Error: User not found. ("..currentUsr..")")
+					end
 				end
-			end
---[[							NOT YET IMPLEMENTED:
-
-
-
-
-		elseif fs.exists("/usr/bin/"..command) and command ~= "cd" then
-			if sudo == false then
-				local nProc = #c.c+1
-				fs.copy("/usr/bin/"..command, "/tmp/"..tostring(nProc))
-				local file = fs.open("/tmp/"..tostring(nProc), "r")
-				local inhalt = file.readAll()
-				file.close()
-				local file = fs.open("/tmp/"..tostring(nProc), "w")
-				file.write("local function init()\n")
-				file.write(inhalt.."\n")
-				file.write("end\n")
-				file.write("init()")
-				file.close()
-
-
-
-				local a = loadfile("/usr/bin/"..command)
-
-				limitFunctions()
-				local e = getfenv(init)
-				local sandBox = createReadOnly(e)
-				setfenv(a, sandBox)
-				--a, unpack(args)
-				c.c[nProc] = coroutine.create(pcall)
-				c.w[nProc] = window.create(oldTerm, 1, 1, 51, 19)
-				term.redirect(c.w[nProc])
-				clear(colors.black, colors.white)
-				inProgram = nProc
-				restoreFunctions()
-			elseif sudo == true then
-				sudo = false
-				term.write("Please enter root password: ")
-				local p = limitReadPw(99)
-				local file = fs.open("/sys/.rootpw", "r")
-				local rpw = file.readLine()
-				file.close()
-				p = sha.pbkdf2(p, "root", 10):toHex()
-				p = tostring(p)
-				if #p < 1 or p ~= rpw then
-					local c = term.getTextColor()
-					term.setTextColor(colors.red)
-					print("Wrong password.")
-					term.setTextColor(c)
-				elseif p == rpw then
-					local nProc = #c.c+1
-					local a = loadfile("/usr/bin/"..command)
-					limitFunctions()
-					local oldCUsr = _G.currentUsr
-					local oldCPw = _G.currentPw
-					_G.currentUsr = "root"
-					_G.currentPw = rpw
-					local e = getfenv(init)
-					local sandBox = createReadOnly(e)
-					setfenv(a, sandBox)
-					c.c[nProc] = coroutine.create(pcall)
-					c.w[nProc] = window.create(oldTerm, 1, 1, 51, 19)
-					term.redirect(c.w[nProc])
-					clear(colors.black, colors.white)
-					inProgram = nProc
-					restoreFunctions()
-				end
-			end
-]]
-
-
-
-
-
-
-		elseif command == "cd" and command ~= nil or command ~= "" and command == "cd" then
-			
-			if #args < 1 or #args > 1 then
-				print("Usage:")
-				print("		cd <path>")
-			else
-				changeDir(args[1])
-			end
-		elseif #command > 0 and fs.exists(currentDir..command) then
-			if sudo == false then
-				local a, err = loadfile(currentDir..command)
-				if a == nil then
-					local col = term.getTextColor()
-					term.setTextColor(colors.red)
-					print(err)
-					term.setTextColor(col)
+			elseif command == "cd" and command ~= nil or command ~= "" and command == "cd" then
+				
+				if #args < 1 or #args > 1 then
+					print("Usage:")
+					print("		cd <path>")
 				else
-					setShellAPI(currentDir)
-					limitFunctions()
-					local e = getfenv(init)
-					local sandBox = createReadOnly(e)
-					setfenv(a, sandBox)
-					local ok, err = pcall(a, unpack(args))
-					restoreFunctions()
-					if ok == false or ok == nil then
+					changeDir(args[1])
+				end
+			elseif #command > 0 and fs.exists(currentDir..command) then
+				if sudo == false then
+					local a, err = loadfile(currentDir..command)
+					if a == nil then
 						local col = term.getTextColor()
 						term.setTextColor(colors.red)
 						print(err)
-						print("Have you tried 'sudo' ?")
 						term.setTextColor(col)
+					else
+						setShellAPI(currentDir)
+						limitFunctions()
+						local e = getfenv(init)
+						local sandBox = createReadOnly(e)
+						setfenv(a, sandBox)
+						local ok, err = pcall(a, unpack(args))
+						restoreFunctions()
+						if ok == false or ok == nil then
+							local col = term.getTextColor()
+							term.setTextColor(colors.red)
+							print(err)
+							print("Have you tried 'sudo' ?")
+							term.setTextColor(col)
+						end
+					end
+				elseif sudo == true then
+					if currentUsr ~= "root" then
+						sudo = false
+						term.write("Please enter root password: ")
+						local p = limitReadPw(99)
+						print("")
+						local file = fs.open("/sys/.rootpw", "r")
+						local rpw = file.readLine()
+						file.close()
+						p = sha.pbkdf2(p, "root", 10):toHex()
+						p = tostring(p)
+						if #p < 1 or p ~= rpw then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Wrong password.")
+							term.setTextColor(c)
+						elseif p == rpw then
+							local a, err = loadfile(currentDir..command)
+							if a == nil then
+								local col = term.getTextColor()
+								term.setTextColor(colors.red)
+								print(err)
+								term.setTextColor(col)
+							else
+								setShellAPI(currentDir)
+								local oldCUsr = currentUsr
+								local oldCPw = currentPw
+								currentUsr = "root"
+								currentPw = rpw
+								local e = getfenv(init)
+								local sandBox = createReadOnly(e)
+								setfenv(a, sandBox)
+								local ok, err = pcall(a, unpack(args))
+								if ok == false or ok == nil then
+									local col = term.getTextColor()
+									term.setTextColor(colors.red)
+									print(err)
+									term.setTextColor(col)
+								end
+								currentUsr = oldCUsr
+								currentPw = oldCPw
+							end
+						end
+					elseif currentUsr == "root" then
+						sudo = false
+						local file = fs.open("/sys/.rootpw", "r")
+						if file == nil then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Error: .rootpw not found.")
+						end
+						local rpw = file.readLine()
+						file.close()
+						if currentPw ~= rpw then
+							local c = term.getTextColor()
+							term.setTextColor(colors.red)
+							print("Wrong password.")
+						else
+							local a,err = loadfile(currentDir..command)
+							if a == nil then
+								local col = term.getTextColor()
+								term.setTextColor(colors.red)
+								print(err)
+								term.setTextColor(col)
+							else
+								setShellAPI(currentDir)
+								local oldCUsr = currentUsr
+								local oldCPw = currentPw
+								local e = getfenv(init)
+								local sandBox = createReadOnly(e)
+								setfenv(a, sandBox)
+								local ok, err = pcall(a, unpack(args))
+								if ok == false or ok == nil then
+									local col = term.getTextColor()
+									term.setTextColor(colors.red)
+									print(err)
+									term.setTextColor(col)
+								end
+								currentUsr = oldCUsr
+								currentPw = oldCPw
+							end
+						end
+					else
+						local c = term.getTextColor()
+						term.setTextColor(colors.red)
+						print("Error: User not found. ("..currentUsr..")")
 					end
 				end
-			elseif sudo == true then
-				if currentUsr ~= "root" then
-					sudo = false
-					term.write("Please enter root password: ")
-					local p = limitReadPw(99)
-					print("")
-					local file = fs.open("/sys/.rootpw", "r")
-					local rpw = file.readLine()
-					file.close()
-					p = sha.pbkdf2(p, "root", 10):toHex()
-					p = tostring(p)
-					if #p < 1 or p ~= rpw then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Wrong password.")
-						term.setTextColor(c)
-					elseif p == rpw then
-						local a, err = loadfile(currentDir..command)
-						if a == nil then
-							local col = term.getTextColor()
-							term.setTextColor(colors.red)
-							print(err)
-							term.setTextColor(col)
-						else
-							setShellAPI(currentDir)
-							local oldCUsr = currentUsr
-							local oldCPw = currentPw
-							currentUsr = "root"
-							currentPw = rpw
-							local e = getfenv(init)
-							local sandBox = createReadOnly(e)
-							setfenv(a, sandBox)
-							local ok, err = pcall(a, unpack(args))
-							if ok == false or ok == nil then
-								local col = term.getTextColor()
-								term.setTextColor(colors.red)
-								print(err)
-								term.setTextColor(col)
-							end
-							currentUsr = oldCUsr
-							currentPw = oldCPw
-						end
-					end
-				elseif currentUsr == "root" then
-					sudo = false
-					local file = fs.open("/sys/.rootpw", "r")
-					if file == nil then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Error: .rootpw not found.")
-					end
-					local rpw = file.readLine()
-					file.close()
-					if currentPw ~= rpw then
-						local c = term.getTextColor()
-						term.setTextColor(colors.red)
-						print("Wrong password.")
-					else
-						local a,err = loadfile(currentDir..command)
-						if a == nil then
-							local col = term.getTextColor()
-							term.setTextColor(colors.red)
-							print(err)
-							term.setTextColor(col)
-						else
-							setShellAPI(currentDir)
-							local oldCUsr = currentUsr
-							local oldCPw = currentPw
-							local e = getfenv(init)
-							local sandBox = createReadOnly(e)
-							setfenv(a, sandBox)
-							local ok, err = pcall(a, unpack(args))
-							if ok == false or ok == nil then
-								local col = term.getTextColor()
-								term.setTextColor(colors.red)
-								print(err)
-								term.setTextColor(col)
-							end
-							currentUsr = oldCUsr
-							currentPw = oldCPw
-						end
-					end
-				else
-					local c = term.getTextColor()
-					term.setTextColor(colors.red)
-					print("Error: User not found. ("..currentUsr..")")
+			elseif fs.exists("/usr/bin/"..command) == false and fs.exists(currentDir..command) == false then
+				local col = term.getTextColor()
+				term.setTextColor(colors.red)
+				print("Command not found.")
+				term.setTextColor(col)
+			elseif command == nil or command == "" then
+			end
+		--[[
+					EXPERIMENTAL PART
+		]]
+
+		elseif rProg == not "" then		--Directly run the fg program and the others in the background, without a shell
+			for _, a in pairs(c.running) do
+				if _ ~= rProg then
+					local cTerm = term.current()
+					local d = wm.getWindow(_)
+					term.redirect(d)
+					c.running, c.dead = resume(_, unpack(rE))
+					term.redirect(cTerm)
 				end
 			end
-		elseif fs.exists("/usr/bin/"..command) == false and fs.exists(currentDir..command) == false then
-			local col = term.getTextColor()
-			term.setTextColor(colors.red)
-			print("Command not found.")
-			term.setTextColor(col)
-		elseif command == nil or command == "" then
+			local d = wm.getWindow(rProg)
+			d.setVisible(true)
+			local cTerm = term.current()
+			d.redraw()
+			term.redirect(d)
+			local evt = {}
+			while rProg do
+				local a, b = resume(rProg, evt)
+				if a == "dead" then
+					c.running, c.dead = listRunningTasks()
+					rProg = nil
+				else
+					evt = {os.pullEvent()}
+					c.running = a
+					c.dead = b
+					if evt[1] == "key" and evt[2] == keys.delete then
+						c.running, c.dead = listRunningTasks()
+						rProg = nil
+					end
+				end
+
+			end
+			cTerm.redraw()
+			term.redirect(cTerm)
 		end
-		
+			
 	end
 end
 
@@ -1147,7 +1227,7 @@ checkUsr()
 
 end
 
-oldTerm = term.native()
-local osWindow = window.create(oldTerm, 1, 1, 51, 19)
-term.redirect(osWindow)
+osWindow = term.current()
+lTerm = window.create(osWindow, 1, 1, 51, 19)
+term.redirect(lTerm)
 init()
