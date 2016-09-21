@@ -1,0 +1,38 @@
+--[[
+						BASIC Window Manager
+
+			This window manager basically creates for every new task
+			a new window.
+
+			NOTE:
+			You could use that in your DE, but it's not recommended, as it only
+			creates fullscreen windows
+]]
+
+windows = {} --Stores the path of the file as key, and the handler/window as value
+
+function createWindow(path, maxX, maxY, terminal) --path = the file, maxX & maxY = maximum size of the parent window, terminal = the parent window
+	if windows[path] ~= nil then --if a window of the same path is already existing, then delete it and make a new one
+		windows[path] = nil
+		windows[path] = window.create(terminal, 1, 1, maxX, maxY) --creates a fullscreen window
+	else
+		windows[path] = window.create(terminal, 1, 1, maxX, maxY)
+	end
+end
+
+function getWindow(path)
+	local found = false
+	for _, a in pairs(windows) do
+		if _ == path then --If a window with the same path is found, return it to the caller
+			return a
+		else
+			found = false
+		end
+	end
+	if found == false then return false end
+end
+
+function deleteWindow(path)
+	windows[path] = nil 			--self explaining
+end
+

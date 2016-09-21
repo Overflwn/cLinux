@@ -1,1 +1,3 @@
+--Dummyfile, to test if running programs in the current directory work
+
 print("Dummyfile, in usr.")

@@ -1,0 +1,39 @@
+--[[local function runOs()
+		
+	local ok, err = os.run( {}, "/sys/os.lua" )
+	return ok, err
+end]]
+
+runOs = loadfile("/sys/os.lua")
+
+ok, err = pcall(runOs())
+
+if ok == nil or ok == false then
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.blue)
+	term.setTextColor(colors.white)
+	term.clear()
+	local goback = #err/2
+	local msg = "Whoops, cLinux crashed!"
+	term.setCursorPos(26-#msg/2, 8)
+	term.write(msg)
+	term.setCursorPos(26-goback, 10)
+	term.setTextColor(colors.red)
+	term.write(err)
+	term.setTextColor(colors.white)
+	local msg = "If you executed a program,"
+	local msg2 = "are you sure the code is correct?"
+	term.setCursorPos(26-#msg/2, 12)
+	term.write(msg)
+	term.setCursorPos(26-#msg2/2, 13)
+	term.write(msg2)
+	local msg = "Press enter to continue."
+	term.setCursorPos(26-#msg/2, 15)
+	term.write(msg)
+	while true do
+		local _, k = os.pullEventRaw("key")
+		if k == keys.enter then
+			return
+		end
+	end
+end

@@ -39,7 +39,7 @@ local progs = {
 }
 
 local oldState = {}
-local msgs = true
+local msgs = false
 
 if os.myEnv then
         if msgs then
@@ -59,7 +59,6 @@ function table.size(tbl)
 end
 
 local function getShell()
-	print("Getting shell..")
 	local t = 0
 	while true do
 		t = t+1
@@ -74,11 +73,43 @@ local function getShell()
 	return nil
 end
 
+local function drawCrash(err)
+	term.setCursorBlink(false)
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.blue)
+	term.setTextColor(colors.white)
+	term.clear()
+	local goback = #err/2
+	local msg = "Whoops, cLinux crashed!"
+	term.setCursorPos(26-#msg/2, 8)
+	term.write(msg)
+	term.setCursorPos(26-goback, 10)
+	term.setTextColor(colors.red)
+	term.write(err)
+	term.setTextColor(colors.white)
+	local msg = "If you executed a program,"
+	local msg2 = "please send me it in the forum post :)"
+	term.setCursorPos(26-#msg/2, 12)
+	term.write(msg)
+	term.setCursorPos(26-#msg2/2, 13)
+	term.write(msg2)
+	local msg = "Press enter to continue."
+	term.setCursorPos(26-#msg/2, 15)
+	term.write(msg)
+	while true do
+		local _, k = os.pullEventRaw("key")
+		if k == keys.enter then
+			return
+		end
+	end
+end
+
 local function recvr()
 	os.myEnv = true
-	os.startTimer = oldState.startTimer
-	os.shutdown = oldState.shutdown
-	os.pullEvent = oldState.pullEvent
+	_G.os.startTimer = oldState.startTimer
+	_G.os.shutdown = oldState.shutdown
+	_G.os.pullEvent = oldState.pullEvent
+	os.myEnv = nil
 	oldstate = nil
 	term.setCursorPos(1,1)
 	term.clear()
@@ -86,16 +117,13 @@ local function recvr()
 		print("This is before Shell")
 	end
 	_G['rednet'] = nil
+	_G.printError = drawCrash
 	os.loadAPI("/rom/apis/rednet")
 	local ok, err = pcall( function()
 	parallel.waitForAny(
 		unpack(progs)
 	)
-	if ok == nil or ok == false then
-		print(err)
-		os.pullEvent()
-		os.pullEvent()
-	end
+
 	end )
 end
 
@@ -152,24 +180,16 @@ os.stage = {}
 	return 0
  end
  
+
  local function inject()
 	oldState.startTimer = os.startTimer
-	print("Got timer.")
 	oldState.shutdown = os.shutdown
-	print("Got shutdown.")
 	oldState.pullEvent = os.pullEvent
-	print("Got pullEvent.")
 	os.shutdown = newShutdown
-	print("Set Shutdown.")
 	os.pullEvent = newPullEvent
-	print("Set pullEvent.")
 	os.startTimer = newStarttimer
-	print("Set timer.")
 	setStage("biosexit")
-	print("Injected.")
 	local shellImpl = getShell()
 	shellImpl.exit()
  end
- 
- print("injecting..")
  inject()

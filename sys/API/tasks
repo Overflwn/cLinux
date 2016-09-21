@@ -1,0 +1,87 @@
+--[[
+							tasks API
+
+			Essential taskmanager for cLinux
+
+			I will try to allow DEs to use that too. (for now it's focused on the terminal)
+
+
+			NOTE:
+			This will work together with a windowmanager (a second API), which CAN be replaced by your DE, if you want
+			(Well, I'd recommend that, as my WM will make every window fullscreen, lol.)
+
+			This taskmanager does NOT allow multiple tasks of the same path.
+]]
+
+tasks = {
+}
+
+
+local function makeTask(func, args)
+	local function createTask(f)
+		local f = f
+		local tArgs = args 					--This is to save the arguments, so that we don't have to run the coroutine to give it the arguments.
+		coroutine.yield()
+		f(unpack(tArgs))
+	end
+	local f = func
+	local a = args
+	local mergedFunc = createTask(f, args)
+	return mergedFunc
+end
+
+function createNewTask(path, ...)
+	local tArgs = {...}
+
+	if tasks[path] == nil then
+		local file = loadfile(path)
+		local t = makeTask(file, tArgs)
+		tasks[path] = coroutine.create(t)
+		coroutine.resume(tasks[path]) -- The coroutine now has stopped at "coroutine.yield", which means it has the args loaded
+	else --This deletes the old task and recreates it from the beginning
+		tasks[path] = nil --deleted, it shouldn't matter if the window manager doesn't delete it's window
+		local file = loadfile(path)
+		local t = makeTask(file, tArgs) --The same as above
+		tasks[path] = coroutine.create(t)
+		coroutine.resume(tasks[path])
+	end
+end
+
+function killTask(path)
+	tasks[path] = nil --Self explaining, BUT you have to (if you don't use my window manager) clear that task inside the window manager again
+end
+
+function listRunningTasks() --Returns a table with every (full path) file, that's currently yielding (= not finished, but waits for resume)
+	local x = {} --Stores the paths
+	for _, a in pairs(tasks) do
+		local b = coroutine.status(tasks[_])
+		if b == "suspended" then
+			table.insert(x, _) --If the coroutine is not finished (= yield), then insert it into the table
+		end
+	end
+	return x --returns with the table
+end
+
+function resumeAll(args) --Resumes ALL yielding tasks (this is useful for tasks, which should run in the background) with the args
+	local dead = {} --this table stores the paths to all dead tasks (= finished or crashed tasks)
+	for _, a in pairs(tasks) do
+		local b = coroutine.status(tasks[_])
+		if b == "suspended" then
+			coroutine.resume(tasks[_], unpack(args)) --resumes the coroutine with the args as argument (os.pullEvent, for example)
+		elseif b == "dead" then
+			table.insert(dead, _) --inserts the path of the dead coroutine to the table dead
+		end
+	end
+
+	return dead --returns the table with all the dead coroutines, just in case if the OS / DE wants to delete them of show them in an UI
+end
+
+function resume(path, args)
+	local b = coroutine.status(tasks[path])
+	if b == "suspended" then
+		coroutine.resume(tasks[_], unpack(args)) --Resumes the yielding coroutines with the given args
+	elseif b == "dead" then
+		return "dead" -- returns "dead" to the caller, as the wanted task is dead.
+	end
+end
+
