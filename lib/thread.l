@@ -11,7 +11,7 @@
 		the TLCO.
 ]]--
 
-local thread = {}
+thread = {}
 
 local started = {}
 local running = {}
