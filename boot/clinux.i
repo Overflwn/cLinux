@@ -11,6 +11,8 @@
 		it sets flags manually, also loading
 		some utils for posterior scripts.
 ]]--
+dofile("/lib/thread.l")
+
 
 -- Put in _G
 function _put(a,b) _G[a]=b end
