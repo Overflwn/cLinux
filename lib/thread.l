@@ -17,13 +17,13 @@ local started = {}
 local running = {}
 local last_uid = 0
 
-function thread.new(task, file, uid)
+function thread.new(task, file, uid, env)
 	uid = uid or last_uid + 1
 	last_uid = last_uid + 1
 
 	local self = {}
 	self.uid = uid
-	self.task = task
+	self.task = setfenv(task, env)
 	self.thread = coroutine.create(task)
 	self.file = file
 	self.filter = nil

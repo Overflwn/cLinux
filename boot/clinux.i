@@ -5,7 +5,7 @@
 	NAME:        /boot/clinux.i
 	CATEGORY:    boot
 	SET:         Boot I
-	VERSION:     12:alpha0
+	VERSION:     01:alpha0
 	DESCRIPTION: 
 		This script is ran after /startup and
 		it sets flags manually, also loading
@@ -17,7 +17,12 @@ dofile("/lib/thread.l")
 -- Put in _G
 function _put(a,b) _G[a]=b end
 _put('_put', _put)
-
+function _check(a)
+	if _G[a] == nil then
+		return false
+	else
+		return true
+end
 -- Put in _G.flag
 _put('flag', {})
 function _flag(a,b) _G.flag[a] = b end
