@@ -58,7 +58,7 @@ end
 local syserror = printError
 printError = function()
 	local printError = syserror
-	local system_alive = thread.new(loadfile("/vit/alive", "/vit/alive", 0))
+	local system_alive = thread.new(loadfile("/vit/alive"), "/vit/alive", 0))
 	local nextf = thread.new(assert(loadfile("/boot/load"))(), "/boot/load", 1)
 	-- NOTE: /boot/load is now in charge of all files to run. If that you know when is
 	-- that branch going to die, please do _flag('STATUS_DEAD') to force a restart.
