@@ -8,116 +8,157 @@
   Made by Piorjade & thecrimulo
 ]]--
 
+--variables
+local bootList = {} --The list with bootable images (.i) is going to be stored here
+local selected = 1 --The pre-selected image
+local defaultcmd = {} --The default command, which the command is booted with
 
---Functions
+--functions
 
-local function clear(bg, fg) --This function is practically in every of my programs, lol ~Piorjade
-	term.setCursorPos(1,1)
-	term.setTextColor(fg)				--Clears the screen with the given Text- and BackgroundColor and sets the cursor to 1,1 (it depends where this function is defined, right now it clears the original term)
-	term.setBackgroundColor(bg)
+local function getList()
+	local file = fs.open("/grubcfg", "r")
+	local inhalt = file.readAll()
+	file.close()
+	inhalt = textutils.unserialize(inhalt)
+	bootList = inhalt.list
+	selected = inhalt.default
+	defaultcmd = inhalt.command
 end
 
-local function getBootfiles() --Lists every file (which does not begin with ".") in /boot/ and returns that table
-	local t = {}
-	local raw = fs.list("/boot/")
-	for _, file in ipairs(raw) do
-		local i, j = string.find(file, "[.]")
-		if i == 1 and i == j then
-			
-		else
-			local i, j = string.find(file, ".i")
-			--if j then
-				table.insert(t, file)
-			--end
+local function readNoJump()	--Reads the user input, but doesn't jump to the next line when finishing
+	local str = ""
+	local reading = true
+	term.setCursorBlink(true)
+	sleep(0.5)
+	while reading do
+		local _, k = os.pullEventRaw()
+		if _ == "key" and k == keys.enter then
+			term.setCursorBlink(false)
+			reading = false
+			return str
+		elseif _ == "key" and k == keys.backspace then
+			str = string.reverse(str)
+			str = string.sub(str, 2)
+			str = string.reverse(str)
+			local x, y = term.getCursorPos()
+			term.setCursorPos(x-1, y)
+			term.write(" ")
+			term.setCursorPos(x-1, y)
+		elseif _ == "char" then
+			str = str..tostring(k)
+			term.write(tostring(k))
 		end
 	end
-	return t
 end
 
 local function drawMenu()
-	clear(colors.black, colors.white)
-	local function drawMessage()
-		local str = "Please select an OS"
-		term.setCursorPos(26-#str/2, 3)		--Function, just to have the ability to redraw the actual term
-		term.write(str)
-		term.setCursorPos(1, 5)
-		term.write(tostring(c))
+	local function clear()
+		term.setCursorPos(1,1)
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.white)
+		term.clear()
 	end
-	drawMessage()
-	local oldTerm = term.current()
-	local w, h = 26, 10
-	local list = window.create(oldTerm, 26-w/2, 10-h/2, w, h)
-	term.redirect(list)
-	local bFiles = getBootfiles()							--Gets the list of the files in /boot/ and sets the values, which are important for scrolling
-	local max = #bFiles 	
-	local missing = 0  --The maximum number, which the cursor can scroll up
-	local left = max-10  --The maximum number (all the files - 10 (the heigth of the window) ), which the cursor can scroll down
-	if left < 0 then left = 0 end --If there aren't more files than the heigth of the screen
-	term.setCursorPos(1,1)
-	term.setBackgroundColor(colors.gray)
-	term.setTextColor(colors.white)
-	term.clear()
-	local c = 1
-	for _, file in ipairs(bFiles) do
-		term.setCursorPos(1, c)
-		term.write(file)
-		c=c+1
-	end
-	c = 1
-	term.redirect(oldTerm)
-	local cX, cY = 26-w/2-1, 10-h/2-1
-	term.setCursorPos(cX, cY+1)
-	term.write(">")
-	local loop = true
-	while loop do  --Start moving cursor loop
-		local _, k = os.pullEventRaw("key")
-		if k == keys.down then --Self explaining
-			if c < h then
-				term.clear()
-				c=c+1
-				term.setCursorPos(cX, cY+c)
-				term.write(">")
-				list.redraw()
-				drawMessage()
-			elseif c == h and left > 0 then
-				list.scroll(1)
-				list.setCursorPos(1, h)
-				missing = missing+1
-				left = left-1
-				list.write(bFiles[missing+10+1])
-				term.clear()
-				term.setCursorPos(cX, cY+c)
-				term.write(">")
-				list.redraw()
-				drawMessage()
-			end
+	clear()
 
-		elseif k == keys.up then --Self explaining
-			if c > 1 then
-				term.clear()
-				c=c-1
-				term.setCursorPos(cX, cY+c)
-				term.write(">")
-				list.redraw()
-				drawMessage()
-			elseif c == 1 and missing > 0 then
-				list.scroll(-1)
-				list.setCursorPos(1, 1)
-				missing = missing-1
-				left = left+1
-				list.write(bFiles[missing])
-				term.clear()
-				term.setCursorPos(cX, cY+c)
-				term.write(">")
-				list.redraw()
-				drawMessage()
+	
+	oldTerm = term.current()
+	local w, h = 15, 11
+	local wlist = window.create(term.current(), 26-w/2, 10-h/2, w, h)
+	local str = "-GRUB-"
+	local str2 = "Please select an image."
+	local str3 = "Press E to write additional commands."
+	local cmd = window.create(term.current(), 26-#str3/2, 19, #str3, 1)
+	cmd.setBackgroundColor(colors.gray)
+	cmd.clear()
+	term.setCursorPos(26-#str/2, 1)
+	term.write(str)
+	term.setCursorPos(26-#str2/2, 2)
+	term.write(str2)
+	term.setCursorPos(26-#str3/2, 18)
+	term.write(str3)
+	local function redrawList()
+		wlist.setBackgroundColor(colors.gray)
+		wlist.clear()
+		wlist.setCursorPos(1,1)
+		wlist.setTextColor(colors.white)
+		term.redirect(wlist)
+		for _, o in ipairs(bootList) do
+			local x, y = term.getCursorPos()
+			if _ == selected then
+				term.setBackgroundColor(colors.lightBlue)
+				term.clearLine()
+				term.write(o)
+				if _ < #bootList then
+					term.setCursorPos(1, y+1)
+				end
+				term.setBackgroundColor(colors.gray)
+			else
+				term.write(o)
+				if _ < #bootList then
+					term.setCursorPos(1, y+1)
+				end
 			end
 		end
-
+		term.redirect(oldTerm)
 	end
+
+	local function redrawCommand()
+		term.redirect(cmd)
+		term.setCursorPos(1,1)
+		term.setBackgroundColor(colors.gray)
+		term.setTextColor(colors.lime)
+		term.clear()
+		if defaultcmd[selected] ~= nil then
+			term.write(defaultcmd[selected])
+		else
+			term.write("NONE")
+		end
+		term.redirect(oldTerm)
+	end
+
+	redrawList()
+	redrawCommand()
+	local running = true
+	term.redirect(wlist)
+	while running do
+		local _, k = os.pullEventRaw("key")
+		if k == keys.up and selected > 1 then
+			selected = selected-1
+			redrawList()
+			redrawCommand()
+		elseif k == keys.down and selected < #bootList then
+			selected = selected+1
+			redrawList()
+			redrawCommand()
+		elseif k == keys.e then
+			term.redirect(cmd)
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(colors.gray)
+			term.setTextColor(colors.lime)
+			term.clear()
+			local e = readNoJump()
+			term.redirect(oldTerm)
+			defaultcmd[selected] = e
+		elseif k == keys.enter then
+			if fs.exists("/boot/"..bootList[selected]) == false then
+				clear()
+				printError("/boot/"..bootList[selected].." does not exist.")
+				running = false
+				break
+			else
+				running = false
+				clear()
+				os.run({}, "/boot/"..bootList[selected])
+			end
+		end
+	end
+	term.redirect(oldTerm)
 end
 
+getList()
 
---Code
-
-drawMenu()
+if #bootList <= 11 then
+	drawMenu()
+else
+	printError("/grubcfg: Too many entries.")
+end
