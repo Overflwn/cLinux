@@ -11,7 +11,7 @@
 		Most of these functions are selfexplaining.
 ]]--
 
-api.load("/lib/sha")
+local sha = os.loadAPI("/lib/sha.l")
 
 local forbidden = {"/vit", "/boot"}
 local perm = {}
@@ -24,6 +24,8 @@ end
 function hashPw(p, salt)
 	return tostring(sha.pbdk2(p, salt, 10):toHex())
 end
+
+_put('hashPw', hashPw)
 
 local usrs = {}
 
@@ -70,7 +72,23 @@ local permission = {}
 
 function permission.check(name, f, wx)
 	for each, folder in ipairs(forbidden) do
-		if folder == f then return false end	--Not finished
+		if folder == f and name ~= "root" then return false end	--Not finished
 	end
-	
+
+	local fldrs = _fs.scanFs()
+	for _, a in pairs(fldrs) do
+		if _ == f then
+			if fldrs[_]['owner'] ~= "root" then
+				return "w"
+			elseif fldrs[_]['owner'] == "root" then
+				return "x"
+			end
+		end
+	end
+	return nil
 end
+
+
+
+perm = {permission, usrs}
+_put('perm', perm)

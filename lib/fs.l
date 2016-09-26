@@ -11,7 +11,9 @@
 		Most of these functions are selfexplaining.
 ]]--
 
-local _fs = {}
+_fs = {}
+local forbidden = {"/boot", "/vit"}
+
 
 function _fs.scanFs(p)
 	local root = {}
@@ -34,4 +36,5 @@ function _fs.scanFs(p)
 			end
 		end
 	end
+	return root
 end

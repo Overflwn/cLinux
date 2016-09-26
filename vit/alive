@@ -1,7 +1,7 @@
 -- Keep the TLCO alive
 -- Create a coroutine with alive, and execute the other.
-while not flag.STATE_DEAD then
-	sleep(0.01)
-end
-syserror("/vit/alive : STATE_DEAD detected. Restarting...")
-os.restart()
+term.setTextColor(colors.red)
+print("/vit/alive : STATE_DEAD detected. Restarting...")
+term.setCursorBlink(false)
+sleep(2)
+os.reboot()

@@ -73,7 +73,7 @@ function thread.runAll(tasklist)
 	evt = {}
 	while true do
 		evt = {os.pullEvent()}
-		for uid, task in pairs(tasklist) do
+		for uid, task in ipairs(tasklist) do
 			if task.dead then table.remove(tasklist, uid)
 			else task.resume(unpack(evt)) end
 		end

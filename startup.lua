@@ -25,7 +25,10 @@ local function getBootfiles() --Lists every file (which does not begin with ".")
 		if i == 1 and i == j then
 			
 		else
-			table.insert(t, file)
+			local i, j = string.find(file, ".i")
+			--if j then
+				table.insert(t, file)
+			--end
 		end
 	end
 	return t
@@ -35,8 +38,10 @@ local function drawMenu()
 	clear(colors.black, colors.white)
 	local function drawMessage()
 		local str = "Please select an OS"
-		term.setCursorPos(26-#str/2, 3)			--Function, just to have the ability to redraw the actual term
+		term.setCursorPos(26-#str/2, 3)		--Function, just to have the ability to redraw the actual term
 		term.write(str)
+		term.setCursorPos(1, 5)
+		term.write(tostring(c))
 	end
 	drawMessage()
 	local oldTerm = term.current()
@@ -66,7 +71,7 @@ local function drawMenu()
 	local loop = true
 	while loop do  --Start moving cursor loop
 		local _, k = os.pullEventRaw("key")
-		if k == keys.down and c < max then --Self explaining
+		if k == keys.down then --Self explaining
 			if c < h then
 				term.clear()
 				c=c+1
@@ -74,21 +79,20 @@ local function drawMenu()
 				term.write(">")
 				list.redraw()
 				drawMessage()
-			elseif c >= h then
+			elseif c == h and left > 0 then
 				list.scroll(1)
 				list.setCursorPos(1, h)
 				missing = missing+1
 				left = left-1
 				list.write(bFiles[missing+10+1])
 				term.clear()
-				c=c+1
 				term.setCursorPos(cX, cY+c)
 				term.write(">")
 				list.redraw()
 				drawMessage()
 			end
 
-		elseif k == keys.up and c > missing+1 then --Self explaining
+		elseif k == keys.up then --Self explaining
 			if c > 1 then
 				term.clear()
 				c=c-1
@@ -96,14 +100,13 @@ local function drawMenu()
 				term.write(">")
 				list.redraw()
 				drawMessage()
-			elseif c == 1 then
+			elseif c == 1 and missing > 0 then
 				list.scroll(-1)
 				list.setCursorPos(1, 1)
 				missing = missing-1
 				left = left+1
 				list.write(bFiles[missing])
 				term.clear()
-				c=c-1
 				term.setCursorPos(cX, cY+c)
 				term.write(">")
 				list.redraw()
