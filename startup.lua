@@ -148,7 +148,17 @@ local function drawMenu()
 			else
 				running = false
 				clear()
-				os.run({}, "/boot/"..bootList[selected])
+				local tArgs = {}
+				repeat
+					local i, j = string.find(defaultcmd[selected], " ")
+					if i then
+						local a = string.sub(defaultcmd[selected], 1, i-1)
+						table.insert(tArgs, a)
+						defaultcmd[selected] = string.sub(defaultcmd[selected], j+1, #defaultcmd[selected])
+					end
+				until i == nil
+				table.insert(tArgs, defaultcmd[selected])
+				os.run({}, "/boot/"..bootList[selected], unpack(tArgs))
 			end
 		end
 	end
