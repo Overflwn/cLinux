@@ -165,10 +165,17 @@ local function drawMenu()
 	term.redirect(oldTerm)
 end
 
-getList()
 
-if #bootList <= 11 then
-	drawMenu()
+if fs.exists("/grubcfg") then
+	getList()
+	
+	if #bootList <= 11 then
+		drawMenu()
+	elseif #bootList > 11 then
+		printError("/grubcfg: Too many entries.")
+	elseif #bootList < 1 then
+		printError("/grubcfg: No entries.")
+	end
 else
-	printError("/grubcfg: Too many entries.")
+	printError("/grubcfg: Not found.")
 end
