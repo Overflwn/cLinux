@@ -17,13 +17,21 @@ local started = {}
 local running = {}
 local last_uid = 0
 
-function thread.new(task, file, uid, env)
+function thread.new(file, uid)
 	uid = uid or last_uid + 1
 	last_uid = last_uid + 1
 
 	local self = {}
 	self.uid = uid
-	self.task = setfenv(task, env)
+	local function _copy(a, b)
+		for k, v in pairs(a) do
+			b[k] = v
+		end
+	end
+	self.env = {}; _copy(_G, self.env)
+	blacklist = {'rawget', 'rawset', 'dofile', '_G'}
+	for k, v in pairs(blacklist) do self.env[k] = nil end
+	self.task = loadfile(file, nil, self.env)
 	self.thread = coroutine.create(task)
 	self.file = file
 	self.filter = nil
