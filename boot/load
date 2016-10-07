@@ -67,9 +67,6 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.write("[OK]")
 			term.setTextColor(c)
 			print(" "..a.." loaded!")
-			print("Press any key")
-			os.pullEvent()
-			--sleep(1)
 		end
 	end
 	local xBox = {}

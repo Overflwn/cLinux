@@ -23,7 +23,7 @@ local function getList()
 	bootList = inhalt.list
 	selected = inhalt.default
 	defaultcmd = inhalt.command
-
+	blacklist = inhalt.blacklist
     for _, a in ipairs(bootList) do
         local i,j = string.find(a, "../")
         if i then
