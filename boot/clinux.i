@@ -103,9 +103,9 @@ _arg = {...}
 if #_arg > 0 then
 	for _,arg in pairs(_arg) do
 		if arg == "sysdebug" then
-		    SYSDEBUG = SYSDEBUG + 1
+		    flag.SYSDEBUG = flag.SYSDEBUG + 1
 		elseif arg == "rescue" then
-			RESCUE = true 
+			flag.RESCUE = true 
 		elseif arg == "startX" then
 			flag.startX = true
 		end

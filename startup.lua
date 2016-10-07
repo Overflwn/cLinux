@@ -157,15 +157,21 @@ local function drawMenu()
 				running = false
 				clear()
 				local tArgs = {}
-				repeat
-					local i, j = string.find(defaultcmd[selected], " ")
-					if i then
-						local a = string.sub(defaultcmd[selected], 1, i-1)
-						table.insert(tArgs, a)
-						defaultcmd[selected] = string.sub(defaultcmd[selected], j+1, #defaultcmd[selected])
-					end
-				until i == nil
-				table.insert(tArgs, defaultcmd[selected])
+				if defaultcmd[selected] ~= nil then
+					repeat
+						local i, j = string.find(defaultcmd[selected], " ")
+						if i then
+							local a = string.sub(defaultcmd[selected], 1, i-1)
+							table.insert(tArgs, a)
+							defaultcmd[selected] = string.sub(defaultcmd[selected], j+1, #defaultcmd[selected])
+						end
+					until i == nil
+					table.insert(tArgs, defaultcmd[selected])
+				end
+				
+				term.redirect(oldTerm)
+				term.setCursorPos(1,1)
+				term.clear()
 				os.run({}, "/boot/"..bootList[selected], unpack(tArgs))
 			end
 		end
