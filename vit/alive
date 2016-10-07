@@ -1,8 +1,5 @@
 -- Keep the TLCO alive
 -- Create a coroutine with alive, and execute the other.
-
-print("Initialized alive!")
-
 while true do
 	local ok, err = thread.getStatus(2)
 	if ok == "dead" or flag.STATE_DEAD or ok == nil then
