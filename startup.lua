@@ -23,20 +23,28 @@ local function getList()
 	bootList = inhalt.list
 	selected = inhalt.default
 	defaultcmd = inhalt.command
+
+    for _, a in ipairs(bootList) do
+        local i,j = string.find(a, "../")
+        if i then
+            table.remove(bootList, _)
+        end
+    end
 end
 
 local function readNoJump()	--Reads the user input, but doesn't jump to the next line when finishing
 	local str = ""
 	local reading = true
 	term.setCursorBlink(true)
-	sleep(0.5)
+	sleep(0.2)
 	while reading do
 		local _, k = os.pullEventRaw()
+		local x, y = term.getCursorPos()
 		if _ == "key" and k == keys.enter then
 			term.setCursorBlink(false)
 			reading = false
 			return str
-		elseif _ == "key" and k == keys.backspace then
+		elseif _ == "key" and k == keys.backspace and x > 1 then
 			str = string.reverse(str)
 			str = string.sub(str, 2)
 			str = string.reverse(str)

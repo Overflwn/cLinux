@@ -17,6 +17,15 @@ local started = {}
 local running = {}
 local last_uid = 0
 
+function thread.getStatus(uid)
+	if started[uid] then
+		return started[uid].status
+	else
+		return nil
+	end
+end
+
+
 function thread.new(file, uid)
 	uid = uid or last_uid + 1
 	last_uid = last_uid + 1
@@ -28,11 +37,12 @@ function thread.new(file, uid)
 			b[k] = v
 		end
 	end
-	self.env = {}; _copy(_G, self.env)
+	self.env = {}
+	_copy(_G, self.env)
 	blacklist = {'rawget', 'rawset', 'dofile', '_G'}
 	for k, v in pairs(blacklist) do self.env[k] = nil end
 	self.task = loadfile(file, nil, self.env)
-	self.thread = coroutine.create(task)
+	self.thread = coroutine.create(self.task)
 	self.file = file
 	self.filter = nil
 	self.error = nil
@@ -40,19 +50,22 @@ function thread.new(file, uid)
 	self.status = "suspended"
 	self.queue = {}
 	self.resume = function(...)
-		local fst = ...
-		if self.filter == nil or fst == self.filter then
-			ok, err = coroutine.resume(self.thread, ...)
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+				
 			if ok then
 				self.filter = err
 				self.status = coroutine.status(self.thread)
 				if self.status == "dead" then self.dead = true end
 			else
+				printError("Error: "..tostring(ok).." "..tostring(err))
+				sleep(2)
 				self.status = coroutine.status(self.thread)
 				if self.status == "dead" then self.dead = true end
 				return err
 			end
-		end
+		--end
 	end
 	started[self.uid] = self
 	self.next = started
@@ -78,12 +91,27 @@ function thread.killAll(tasklist)
 end
 
 function thread.runAll(tasklist)
-	evt = {}
+	evt = {"key", keys.l}
 	while true do
-		evt = {os.pullEvent()}
+		
 		for uid, task in ipairs(tasklist) do
-			if task.dead then table.remove(tasklist, uid)
-			else task.resume(unpack(evt)) end
+			if task.dead then
+				table.remove(tasklist, uid)
+			else 
+				local ok = task.resume(unpack(evt))
+				if ok == nil or ok == true then
+				else
+					table.remove(tasklist, uid)
+					flag.STATE_DEAD = true
+					return false, ok
+				end
+			end
 		end
+		if #tasklist < 1 then
+			flag.STATE_DEAD = true
+			break
+		end
+		evt = {os.pullEventRaw()}
 	end
+	return
 end

@@ -12,7 +12,7 @@
 		some utils for posterior scripts.
 ]]--
 
---dofile("/lib/thread.l")
+dofile("/lib/thread.l")
 old = {
 	fs = {}
 }
@@ -76,7 +76,6 @@ _put('_flag', _flag)
 -- Get _G.flag[flag]
 function _getflag(flag) return flag[flag] end
 _put('_getflag', _getflag)
-
 -- Loadfile, securely
 _put('_REQUIRECACHE', {})
 local function require(file)
@@ -108,7 +107,7 @@ if #_arg > 0 then
 		elseif arg == "rescue" then
 			RESCUE = true 
 		elseif arg == "startX" then
-			startX = true
+			flag.startX = true
 		end
 	end
 end
@@ -122,12 +121,17 @@ _G.printError = function()
 	local c1 = coroutine.create(bLoad)
 	local evt = {}
 	while not flag.STATE_DEAD do
-		coroutine.resume(c1, unpack(evt))
-		evt = {os.pullEvent()}
+		--coroutine.resume(c1, unpack(evt))
+		local alive, err = thread.new("/boot/load", 1)
+		local nextf, err = thread.new("/vit/alive", 2)
+		thread.runAll(nextf.next)
+		--evt = {os.pullEvent()}
 	end
-	if flag.STATE_DEAD then
+	print("Back here.")
+	sleep(1)
+	--[[if flag.STATE_DEAD then
 		bAlive()
-	end
+	end]]
 	--local system_alive = thread.new(loadfile("/vit/alive"), "/vit/alive", 0, createReadOnly(_G))
 	--local nextf = thread.new(loadfile("/boot/load"), "/boot/load", 1, createReadOnly(_G))
 	-- NOTE: /boot/load is now in charge of all files to run. If that you know when is

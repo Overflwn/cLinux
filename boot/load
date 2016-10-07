@@ -62,6 +62,9 @@ for _, a in ipairs(old.fs.list("/lib/")) do
 		term.write("[OK]")
 		term.setTextColor(c)
 		print(" "..a.." loaded!")
+		print("Press any key")
+		os.pullEvent()
+		--sleep(1)
 	end
 end
 local xBox = {}
@@ -75,7 +78,7 @@ if flag.startX then
 	if x == nil then
 		local c = term.getTextColor()
 		term.setTextColor(colors.red)
-		term.write("[X] xserv.i couldn't be loaded, aborting.")
+		print("[X] xserv.i couldn't be loaded, aborting.")
 		term.setTextColor(c)
 		flag.STATE_DEAD = true
 	else
