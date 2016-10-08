@@ -7,54 +7,18 @@
 	SET:         Boot II
 	VERSION:     01:alpha0
 	DESCRIPTION: 
-		This script is ran after /clinux.i
+		This script is ran after /boot/clinux.i
 		and loads important libraries up
 		and starts the shell at the end.
 ]]--
 
 --if flag.STATE_INIT ~= true or flag.STATE_INIT == nil then
-	
 --end
+
 if _G['flag'] and _G['flag']['STATE_INIT'] then
-	local tTables = {}
-	local tReadOnly = {}
-	local native_rawset = rawset
-	local mt = {
-					__metatable = 'Attempt to get protected metatable',
-					__newindex = function(self, key, value)
-							if not tTables[self][key] then
-									native_rawset(self, key, value)
-									return
-							end
-							error('Try to write to read only table', 2)
-					end
-	}
-	mt.__index = function (self, key)
-					local var = tTables[self][key]
-					if type(var) == 'table' then
-									setmetatable({}, mt)
-					end
-					return var
-	end
-
-	_G.rawset = function (tab, key, value)
-					if tReadOnly[tab] then error('Try to write to read only table', 2) end
-					return native_rawset(tab, key, value)
-	end
-
-	local function createReadOnly (tab)
-					if type(tab) ~= 'table' then
-									error('table expected, got ' .. type(tab), 2)
-					end
-					local self = setmetatable({}, mt)
-					tTables[self] = tab
-					tReadOnly[self] = true
-					return self
-	end
-
-	for _, a in ipairs(old.fs.list("/lib/")) do
+	for _, a in ipairs(fs.list("/lib/")) do
 		print("Loading "..a)
-		local ok, err = dofile("/lib/"..a)
+		local ok, err = loadAPI("/lib/"..a)
 		if ok == false then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
@@ -67,6 +31,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.write("[OK]")
 			term.setTextColor(c)
 			print(" "..a.." loaded!")
+			sleep(0.5)
 		end
 	end
 	local xBox = {}
@@ -74,29 +39,13 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	for _, a in pairs(_G) do
 		xBox[_] = a
 	end
-
-	if flag.startX then
-		local x = loadfile("/boot/X/xserv.i")
-		if x == nil then
-			local c = term.getTextColor()
-			term.setTextColor(colors.red)
-			print("[X] xserv.i couldn't be loaded, aborting.")
-			term.setTextColor(c)
-			flag.STATE_DEAD = true
-		else
-			setfenv(x, createReadOnly(xBox))
-			local ok, err = pcall(x)
-			if ok == nil then
-				local c = term.getTextColor()
-				term.setTextColor(colors.red)
-				term.write("[X] "..err)
-				term.setTextColor(c)
-				flag.STATE_DEAD = true
-			end
-		end
-	else
-		flag.STATE_DEAD = true
+	local x, err = thread.new("/bin/shell.lua", 1)
+	if x == false then
+		cLinuxPrintError("X", err)
+		sleep(2)
 	end
+	thread.runAll(x.next)
+	flag.STATE_DEAD = true
 else
 	term.clear(1,1)
 	term.setCursorPos(1,1)

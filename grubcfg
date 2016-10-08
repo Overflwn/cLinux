@@ -18,8 +18,8 @@
 		"6"
 	},
 	command = {			--The default command, which the command is booted with (Please in same order as above)
-		"NNNNope",
+		"",
 		"test",
 	},
-	default = 3
+	default = 1
 }

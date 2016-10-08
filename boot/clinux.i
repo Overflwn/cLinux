@@ -11,15 +11,21 @@
 		it sets flags manually, also loading
 		some utils for posterior scripts.
 ]]--
+--_G['old'] = {}
+--_G.old['fs'] = fs
 
-dofile("/lib/thread.l")
-old = {
-	fs = {}
-}
-for k, v in pairs(fs) do
-	old.fs[k] = v
+function loadAPI(path)
+	local ok = loadfile(path)
+	if not ok then
+		return false
+	else
+		local ok, err = ok()
+		if ok == false then
+			return false, err
+		end
+	end
 end
-
+local ok, err = loadAPI("/lib/thread.l")
 local tTables = {}
 local tReadOnly = {}
 local native_rawset = rawset
@@ -59,7 +65,6 @@ end
 -- Put in _G
 function _put(a,b) _G[a]=b end
 _put('_put', _put)
-_put('old', old)
 function _check(a)
 	if _G[a] == nil then
 		return false
@@ -72,7 +77,7 @@ _put('_check', _check)
 _put('flag', {})
 function _flag(a,b) _G.flag[a] = b end
 _put('_flag', _flag)
-
+_put('loadAPI', loadAPI)
 -- Get _G.flag[flag]
 function _getflag(flag) return flag[flag] end
 _put('_getflag', _getflag)
@@ -87,6 +92,14 @@ local function require(file)
 		return false
 	end
 end
+local function cLinuxPrintError(status, message)
+	local c = term.getTextColor()
+	term.setTextColor(colors.red)
+	print("["..status.."] "..message)
+	term.setTextColor(c)
+end
+
+_put('cLinuxPrintError', cLinuxPrintError)
 _put('require', require)
 
 -- Set system flags
@@ -116,14 +129,12 @@ local syserror = printError
 _put('syserror', syserror)
 _G.printError = function()
 	_G.printError = syserror
-	local bLoad = loadfile("/boot/load")
-	local bAlive = loadfile("/vit/alive")
-	local c1 = coroutine.create(bLoad)
 	local evt = {}
 	while not flag.STATE_DEAD do
 		--coroutine.resume(c1, unpack(evt))
 		local alive, err = thread.new("/boot/load", 1)
 		local nextf, err = thread.new("/vit/alive", 2)
+		_G['toplevel'] = nextf.next
 		thread.runAll(nextf.next)
 		--evt = {os.pullEvent()}
 	end

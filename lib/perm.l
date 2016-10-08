@@ -10,15 +10,22 @@
 		This script is manages users and their permissions.
 		Most of these functions are selfexplaining.
 ]]--
-
+local old = {}
+old['fs'] = fs
 local sha = os.loadAPI("/lib/sha.l")
 
-local forbidden = {"/vit", "/boot"}
+local forbidden = {"/vit", "/boot", "/bin"}
 local perm = {}
+local name = ""
+local password = ""
+local _users = {}
 
-
-if not _check(_users) then
-	_G._users = {}
+if not _users then
+	_users = {}
+	local file = old.fs.open("/sys/usrData", "r")
+	local inhalt = file.readAll()
+	_users = textutils.unserialize(inhalt)
+	file.close()
 end
 
 function hashPw(p, salt)
@@ -30,15 +37,29 @@ _put('hashPw', hashPw)
 local usrs = {}
 
 function usrs.addUser(name, pw)
-	if _users[name] then return false end
+	if _users[name] or name == "root" then return false end
 	pw = hashPw(pw, name)
 	_users[name] = pw
+	local file = old.fs.open("/sys/usrData", "w")
+	file.write(textutils.serialize(_users))
+	file.close()
 	old.fs.makeDir("/home/"..name)
 	return true
 end
 
+function usrs.checkRootPw(p)
+	local file = old.fs.open("/sys/rootpw", "r")
+	local pw = file.readLine()
+	file.close()
+	if p == pw then
+		return true
+	else
+		return false
+	end
+end
+
 function usrs.removeUser(name, rpw)
-	if name == nil or rpw == nil then return end
+	if name == nil or rpw == nil or name == "root" then return end
 	if _users[name] then
 		local rpw = hashPw(rpw, "root")
 		local a = perm.checkRootPw(rpw)
@@ -47,6 +68,9 @@ function usrs.removeUser(name, rpw)
 		elseif a == true then
 			old.fs.delete("/home/"..name)
 			_users[name] = nil
+			local file = old.fs.open("/sys/usrData", "w")
+			file.write(textutils.serialize(_users))
+			file.close()
 		end
 	else
 		return nil
@@ -55,11 +79,24 @@ end
 
 function usrs.changePw(name, oldPw, newPw)
 	if name == nil or oldPw == nil or newPw == nil then return nil end
-	if _users[name] then
+	if _users[name] and name ~= "root" then
 		local oldPw = hashPw(oldPw, name)
 		if oldPw == _users[name] then
 			local nPw = hashPw(newPw, name)
 			_users[name] = nPw
+			local file = old.fs.open("/sys/usrData", "w")
+			file.write(textutils.serialize(_users))
+			file.close()
+		else
+			return false
+		end
+	elseif name == "root" then
+		local oldPw = hashPw(oldPw, name)
+		local newPw = hashPw(newPw, name)
+		if usrs.checkRootPw(oldPw) then
+			local file = old.fs.open("/sys/.rootpw", "w")
+			file.writeLine(newPw)
+			file.close()
 		else
 			return false
 		end
@@ -70,25 +107,51 @@ end
 
 local permission = {}
 
-function permission.check(name, f, wx)
+function permission.check(f)
 	for each, folder in ipairs(forbidden) do
-		if folder == f and name ~= "root" then return false end	--Not finished
-	end
-
-	local fldrs = _fs.scanFs()
-	for _, a in pairs(fldrs) do
-		if _ == f then
-			if fldrs[_]['owner'] ~= "root" then
-				return "w"
-			elseif fldrs[_]['owner'] == "root" then
-				return "x"
-			end
+		if folder == f and name ~= "root" then return "x" end	--Not finished
+		local i, j = string.find(f, folder)
+		if i == 1 and name ~= "root" then
+			return "x"
+		else
+			return "w"
 		end
 	end
 	return nil
 end
 
+function permission.login(n, p)
+	if n == nil or p == nil then return nil end
+	p = hashPw(p, name)
+	
+	local file = old.fs.open("/sys/usrData", "r")
+	local inhalt = file.readAll()
+	file.close()
+	inhalt = textutils.unserialize(inhalt)
+	if n ~= "root" and inhalt[n] then
+		if p == inhalt[n] then
+			name = n
+			password = p
+			return true
+		else
+			return false
+		end
+	elseif n == "root" then
+		local file = old.fs.open("/sys/.rootpw", "r")
+		local rpw = file.readLine()
+		file.close()
+		if p == rpw then
+			name = "root"
+			password = p
+			return true
+		else
+			return false
+		end
+	elseif inhalt[n] == nil then
+		return nil
+	end
+end
 
-
-perm = {permission, usrs}
+perm['permission'] = permission
+perm['usrs'] = usrs
 _put('perm', perm)
