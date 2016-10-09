@@ -19,8 +19,11 @@ local errors = {
 	err = nil,
 }
 local started = {}
-local running = {}
+local windows = {}
 local last_uid = 0
+local mainwindow = nil
+local mainuid = nil
+local lastx, lasty = 1, 1
 
 function sThread.getStatus(tasklist, uid)
 	if tasklist[uid] then
@@ -31,11 +34,46 @@ function sThread.getStatus(tasklist, uid)
 end
 
 
-function sThread.new(file, uid) --extra is a table with extra things that should be removed from the env
+function sThread.new(file, uid, fg, width, height, parent, main, lx, ly) --fg is a boolean if the process should show term drawing
+	if fg == nil then
+		fg = true
+	end
+	if main == nil then
+		main = false		--main indicates if that thread is the core window, for example the commandline
+	end
 	uid = uid or last_uid + 1
 	last_uid = last_uid + 1
 	extra = extra or {}
 	local self = {}
+	self.main = false
+	self.lastx, self.lasty = 1, 1
+	if width ~= nil then
+		if parent == nil then
+			parent = mainwindow
+		end
+		self.window = window.create(parent, 1, 1, width, height, fg)
+		self.window.clear()
+	end
+	if main == true then
+		self.main = true
+		mainuid = uid
+		mainwindow = self.window
+		if lx ~= nil then
+			self.lastx = lx
+		else
+			self.lastx = 1
+		end
+		if ly ~= nil then
+			self.lasty = ly
+		else
+			self.lasty = 1
+		end
+		lastx = self.lastx
+		lasty = self.lasty
+	else
+		self.main = false
+	end
+	
 	self.uid = uid
 	local function _copy(a, b)
 		for k, v in pairs(a) do
@@ -44,7 +82,7 @@ function sThread.new(file, uid) --extra is a table with extra things that should
 	end
 	self.env = {}
 	_copy(_G, self.env)
-	blacklist = {'rawget', 'rawset', 'dofile', '_G'}	--things that shouldn't get added, and extras
+	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 	self.task, err = loadfile(file)
 	
@@ -60,10 +98,39 @@ function sThread.new(file, uid) --extra is a table with extra things that should
 	self.status = "suspended"
 	self.queue = {}
 	self.resume = function(...)
+		
 		local fst = {...}
 		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--[[if self.main then
+					self.lastx, self.lasty = lastx, lasty
+				end]]
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
 			ok, err = coroutine.resume(self.thread, unpack(fst))
-				
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
 			if ok then
 				self.filter = err
 				self.status = coroutine.status(self.thread)
@@ -74,6 +141,9 @@ function sThread.new(file, uid) --extra is a table with extra things that should
 				if self.status == "dead" then self.dead = true end
 				return ok, err
 			end
+		else
+			return false, "is dead"
+		end
 		--end
 	end
 	started[self.uid] = self
@@ -112,18 +182,21 @@ end
 function sThread.runAll(tasklist)
 	evt = {"key", keys.l}
 	while true do
+		if #tasklist < 1 then
+			break
+		end
 		for uid, task in ipairs(tasklist) do
 			if task.dead then
-				tasklist[uid] = nil
+				table.remove(tasklist, uid)
 				last_uid = #tasklist
-			else 
+			else
 				ok, err = task.resume(unpack(evt))
 				if ok == nil or ok == true then
 					
 				else
 					errors.ok = ok
 					errors.err = err
-					tasklist[uid] = nil
+					table.remove(tasklist, uid)
 					last_uid = #tasklist
 					--[[if uid == 1 then
 						flag.STATE_DEAD = true

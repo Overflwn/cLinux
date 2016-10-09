@@ -15,9 +15,9 @@
 --_G.old['fs'] = fs
 
 function loadAPI(path)
-	local ok = loadfile(path)
+	local ok, err = loadfile(path)
 	if not ok then
-		return false
+		return false, err
 	else
 		local ok, err = ok()
 		if ok == false then
@@ -64,7 +64,12 @@ end
 
 -- Put in _G
 function _put(a,b) _G[a]=b end
+local lib = {}
+
+function _putLib(a,b) _G['lib'][a]=b end
 _put('_put', _put)
+_put('lib', lib)
+_put('_putLib', _putLib)
 function _check(a)
 	if _G[a] == nil then
 		return false
@@ -101,7 +106,6 @@ end
 
 _put('cLinuxPrintError', cLinuxPrintError)
 _put('require', require)
-
 -- Set system flags
 --- Debug level, set to 0 by default, use /startup
 _flag('SYSDEBUG', 0)
@@ -129,15 +133,28 @@ local syserror = printError
 _put('syserror', syserror)
 _G.printError = function()
 	_G.printError = syserror
+	_G['rednet'] = nil
 	local evt = {}
-	while not flag.STATE_DEAD do
+	--local a = loadfile("/rom/apis/rednet")
+	--a()
+	--while not flag.STATE_DEAD do
 		--coroutine.resume(c1, unpack(evt))
 		local alive, err = thread.new("/boot/load", 1)
 		local nextf, err = thread.new("/vit/alive", 2)
+		--local nextf, err = thread.new("/sys/redn", 3)
 		_G['toplevel'] = nextf.next
-		thread.runAll(nextf.next)
+		local ok, err = pcall(function () 
+			parallel.waitForAny(
+				function()
+					thread.runAll(nextf.next)
+				end	)
+		end)
+		if not ok then
+			print(err)
+			sleep(2)
+		end
 		--evt = {os.pullEvent()}
-	end
+	--end
 	print("Back here.")
 	sleep(1)
 	--[[if flag.STATE_DEAD then

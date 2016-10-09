@@ -63,7 +63,7 @@ function _fs.makeDir(p)
 		p = getCurPath()
 	end
 	
-	local wx = perm.permission.check(p)
+	local wx = lib.perm.permission.check(p)
 	if wx == "w" then
 		old.fs.makeDir(p)
 	elseif wx == "x" then
@@ -75,7 +75,7 @@ end
 
 function _fs.open(p, mode)
 	if mode == "w" or mode == "a" then
-		local ok = perm.permission.check(p)
+		local ok = lib.perm.permission.check(p)
 		if ok ~= "w" then
 			return nil
 		elseif ok == "w" then
@@ -107,10 +107,10 @@ _fs.getSize = old.fs.getSize
 _fs.getFreeSpace = old.fs.getFreeSpace
 
 function _fs.move(from, to)
-	local m = perm.permission.check(from)
+	local m = lib.perm.permission.check(from)
 	
 	if m == "w" then
-		local m = perm.permission.check(to)
+		local m = lib.perm.permission.check(to)
 		if m == "w" then
 			old.fs.move(from, to)
 		else
@@ -122,7 +122,7 @@ function _fs.move(from, to)
 end
 
 function _fs.copy(from, to)
-	local m = perm.permission.check(to)
+	local m = lib.perm.permission.check(to)
 	if m == "w" then
 		old.fs.copy(from, to)
 	else
@@ -131,7 +131,7 @@ function _fs.copy(from, to)
 end
 
 function _fs.delete(p)
-	local m = perm.permission.check(p)
+	local m = lib.perm.permission.check(p)
 	if m == "w" then
 		old.fs.delete(p)
 	else

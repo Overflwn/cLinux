@@ -42,7 +42,7 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 	end
 	self.env = {}
 	_copy(_G, self.env)
-	blacklist = {'rawget', 'rawset', 'dofile', '_G'}	--things that shouldn't get added, and extras
+	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 	self.task, err = loadfile(file)
 	

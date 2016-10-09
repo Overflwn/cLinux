@@ -1,10 +1,8 @@
-print("Testprogram")
-coroutine.yield()
-local file = fs.open("/vit/test2", "w")
-if file == nil then
-	print("Got no perm lolz")
-	return
-end
-file.write("print('well hello')")
-file.close()
-print("got it!")
+os.queueEvent("modem_message", 0)
+
+local e = read()
+
+rednet.send(1, "hi")
+local id, msg = rednet.receive()
+
+print(tostring(id)..tostring(msg))

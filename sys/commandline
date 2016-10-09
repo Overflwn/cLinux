@@ -1,0 +1,415 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /sys/commandline
+	CATEGORY:    boot
+	SET:         Boot III
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This script is the commandline and is run as a service.
+]]--
+
+
+--[[
+	Resetting taskmanager on cmd level
+]]
+
+
+sThread = {}
+
+local errors = {
+	ok = "noError",
+	err = nil,
+}
+local started = {}
+local windows = {}
+local last_uid = 2
+local mainwindow = nil
+local mainuid = nil
+local lastx, lasty = 1, 1
+
+function sThread.getStatus(tasklist, uid)
+	if tasklist[uid] then
+		return tasklist[uid].status
+	else
+		return nil
+	end
+end
+
+
+function sThread.new(file, uid, fg, width, height, parent, main, lx, ly) --fg is a boolean if the process should show term drawing
+	if fg == nil then
+		fg = true
+	end
+	if main == nil then
+		main = false		--main indicates if that thread is the core window, for example the commandline
+	end
+	uid = uid or last_uid + 1
+	last_uid = last_uid + 1
+	extra = extra or {}
+	local self = {}
+	self.main = false
+	self.lastx, self.lasty = 1, 1
+	if width ~= nil then
+		if parent == nil then
+			parent = mainwindow
+		end
+		self.window = window.create(parent, 1, 1, width, height, fg)
+		self.window.clear()
+	end
+	if main == true then
+		self.main = true
+		mainuid = uid
+		mainwindow = self.window
+		if lx ~= nil then
+			self.lastx = lx
+		else
+			self.lastx = 1
+		end
+		if ly ~= nil then
+			self.lasty = ly
+		else
+			self.lasty = 1
+		end
+		lastx = self.lastx
+		lasty = self.lasty
+	else
+		self.main = false
+	end
+	
+	self.uid = uid
+	local function _copy(a, b)
+		for k, v in pairs(a) do
+			b[k] = v
+		end
+	end
+	self.env = {}
+	_copy(_G, self.env)
+	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
+	for k, v in ipairs(blacklist) do self.env[v] = nil end
+	self.task, err = loadfile(file)
+	
+	if not self.task then
+		return false, err
+	end
+	setfenv(self.task, self.env)
+	self.thread = coroutine.create(self.task)
+	self.file = file
+	self.filter = nil
+	self.error = nil
+	self.dead = false
+	self.status = "suspended"
+	self.queue = {}
+	self.resume = function(...)
+		
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--[[if self.main then
+					self.lastx, self.lasty = lastx, lasty
+				end]]
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return false, "is dead"
+		end
+		--end
+	end
+	started[self.uid] = self
+	self.next = started
+	return self
+end
+
+function sThread.queue(process, event, parameters)
+	process.queue[#process.queue+1] = {event = event, parameters = parameters}
+	return true
+end
+ 
+function sThread.kill(process)
+	process.dead = true
+	process.status = "dead"
+	sThread.queue(process, "sig:terminate", {})
+end
+
+function sThread.killAll(tasklist)
+	if not flag.STATE_SHUTDOWN or not flag.STATE_RESTART then return false end
+	for uid, task in pairs(tasklist) do
+			sThread.kill(task)
+	end
+end
+
+function sThread.getError()
+	if errors.ok ~= "noError" then
+		local oldok, olderr = errors.ok, errors.err
+		errors.ok, errors.err = "noError", nil
+		return oldok, olderr
+	else
+		return "noError"
+	end
+end
+
+function sThread.runAll(tasklist)
+	evt = {"key", keys.l}
+	while true do
+		if #tasklist < 1 then
+			break
+		end
+		for uid, task in ipairs(tasklist) do
+			if task.dead then
+				table.remove(tasklist, uid)
+				last_uid = #tasklist
+			else
+				ok, err = task.resume(unpack(evt))
+				if ok == nil or ok == true then
+					
+				else
+					printError(err)
+					table.remove(tasklist, uid)
+					last_uid = #tasklist
+					--[[if uid == 1 then
+						flag.STATE_DEAD = true
+						return false, ok
+					end]]
+				end
+			end
+		end
+		if #tasklist < 1 then
+			break
+		end
+		evt = {os.pullEventRaw()}
+	end
+	return
+end
+thread = sThread
+tasks = {}
+
+--[[
+	Resetting taskmanager on cmd level finished
+]]
+
+
+
+
+
+
+
+term.setCursorPos(1,1)
+term.setBackgroundColor(colors.gray)
+term.clear()
+
+local function cmd()
+	while true do
+		for _, a in ipairs(tasks) do
+			print(tostring(a.file))
+		end
+		local ok, err = thread.getError()
+		if ok ~= "noError" then
+			printError(err)
+		end
+		term.write("#")
+		term.write(tostring(#tasks))
+		local e = ""
+			parallel.waitForAny(
+				function()
+					e = read()
+				end,
+				function()
+					while true do
+						local x, y = term.getCursorPos()
+						term.setCursorPos(1, y)
+						term.write("#")
+						term.write(tostring(#tasks))
+						term.setCursorPos(x, y)
+						sleep(0.25)
+					end
+				end
+			)
+		if fs.exists(e) and #e > 0 then
+			local f, err = thread.new(e)
+			if not f then
+				printError(err)
+			else
+				tasks = f.next
+			end
+			term.write("#")
+			term.write(tostring(#tasks))
+		elseif fs.exists(e) == false and #e > 0 then
+			print("Command not found.")
+		end
+	end
+end
+
+
+
+local self = {}
+self.main = false
+self.lastx, self.lasty = 1, 1
+self.uid = 1
+self.task = cmd
+self.thread = coroutine.create(self.task)
+self.file = "CommandLine"
+self.filter = nil
+self.error = nil
+self.dead = false
+self.status = "suspended"
+self.queue = {}
+self.resume = function(...)
+		
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--[[if self.main then
+					self.lastx, self.lasty = lastx, lasty
+				end]]
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return false, "is dead"
+		end
+		--end
+	end
+started[1] = self
+self.next = started
+tasks = self.next
+
+local self = {}
+self.main = false
+self.lastx, self.lasty = 1, 1
+self.uid = 2
+self.task = rednet.run
+self.thread = coroutine.create(self.task)
+self.file = "RedNet"
+self.filter = nil
+self.error = nil
+self.dead = false
+self.status = "suspended"
+self.queue = {}
+self.resume = function(...)
+		
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--[[if self.main then
+					self.lastx, self.lasty = lastx, lasty
+				end]]
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return false, "is dead"
+		end
+		--end
+	end
+started[2] = self
+self.next = started
+tasks = self.next
+
+
+while true do
+	thread.runAll(tasks)
+end
+
+
+

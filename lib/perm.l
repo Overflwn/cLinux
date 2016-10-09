@@ -36,6 +36,15 @@ _put('hashPw', hashPw)
 
 local usrs = {}
 
+function usrs.getList()
+	local inhalt = {}
+	
+	for k, v in pairs(_users) do
+		table.insert(inhalt, k)
+	end
+	return inhalt
+end
+
 function usrs.addUser(name, pw)
 	if _users[name] or name == "root" then return false end
 	pw = hashPw(pw, name)
@@ -154,4 +163,4 @@ end
 
 perm['permission'] = permission
 perm['usrs'] = usrs
-_put('perm', perm)
+_putLib('perm', perm)

@@ -160,6 +160,7 @@ local function toBytes(t, n)
 	return setmetatable(b, mt)
 end
 
+
 function digest(data)
 	data = data or ""
 	data = type(data) == "string" and {data:byte(1,-1)} or data
