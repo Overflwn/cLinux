@@ -45,7 +45,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	end
 	local x, err = thread.new("/bin/shell.lua", 1)
 	if x == false then
-		cLinuxPrintError("X", err)
+		cLinuxPrintError("Shell", err)
 		sleep(2)
 	end
 	thread.runAll(x.next)
