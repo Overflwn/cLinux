@@ -1,3 +1,5 @@
+
+
 --[[
 	cLinux : Lore of the Day!
 	Made by Piorjade, daelvn
@@ -13,23 +15,25 @@
 local old = {}
 old['fs'] = fs
 local sha = os.loadAPI("/lib/sha.l")
-
 local forbidden = {"/vit", "/boot", "/bin"}
 local perm = {}
 local name = ""
 local password = ""
-local _users = {}
+local _users = nil
 
-if not _users then
+if _users == nil then
 	_users = {}
+	print("No users")
 	local file = old.fs.open("/sys/usrData", "r")
 	local inhalt = file.readAll()
 	_users = textutils.unserialize(inhalt)
 	file.close()
+	
 end
 
 function hashPw(p, salt)
-	return tostring(sha.pbdk2(p, salt, 10):toHex())
+	local str = pbkdf2(p, salt, 10):toHex()
+	return tostring(str)
 end
 
 _put('hashPw', hashPw)
@@ -48,6 +52,7 @@ end
 function usrs.addUser(name, pw)
 	if _users[name] or name == "root" then return false end
 	pw = hashPw(pw, name)
+	print(type(_users))
 	_users[name] = pw
 	local file = old.fs.open("/sys/usrData", "w")
 	file.write(textutils.serialize(_users))
@@ -131,7 +136,7 @@ end
 
 function permission.login(n, p)
 	if n == nil or p == nil then return nil end
-	p = hashPw(p, name)
+	p = hashPw(p, n)
 	
 	local file = old.fs.open("/sys/usrData", "r")
 	local inhalt = file.readAll()

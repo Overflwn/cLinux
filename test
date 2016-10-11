@@ -1,8 +1,5 @@
-os.queueEvent("modem_message", 0)
+local test = lib.perm.usrs.getList()
 
-local e = read()
-
-rednet.send(1, "hi")
-local id, msg = rednet.receive()
-
-print(tostring(id)..tostring(msg))
+for _, a in ipairs(test) do
+	print(a)
+end

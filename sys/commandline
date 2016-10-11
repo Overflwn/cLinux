@@ -28,6 +28,7 @@ local last_uid = 2
 local mainwindow = nil
 local mainuid = nil
 local lastx, lasty = 1, 1
+local foreground = {}
 
 function sThread.getStatus(tasklist, uid)
 	if tasklist[uid] then
@@ -189,22 +190,41 @@ function sThread.runAll(tasklist)
 		if #tasklist < 1 then
 			break
 		end
+		local counter = 0
+		for _, a in pairs(foreground) do
+			counter = counter+1
+		end
 		for uid, task in ipairs(tasklist) do
-			if task.dead then
-				table.remove(tasklist, uid)
-				last_uid = #tasklist
-			else
-				ok, err = task.resume(unpack(evt))
-				if ok == nil or ok == true then
-					
+			if foreground[uid] then
+				if task.dead then
+					table.remove(tasklist, uid)
+					foreground[uid] = nil
+					counter = counter-1
+					last_uid = #tasklist
 				else
-					printError(err)
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+					else
+						printError(err)
+						counter = counter-1
+						table.remove(tasklist, uid)
+						foreground[uid] = nil
+						last_uid = #tasklist
+					end
+				end
+			elseif counter == 0 or counter == nil then
+				if task.dead then
 					table.remove(tasklist, uid)
 					last_uid = #tasklist
-					--[[if uid == 1 then
-						flag.STATE_DEAD = true
-						return false, ok
-					end]]
+				else
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+						
+					else
+						printError(err)
+						table.remove(tasklist, uid)
+						last_uid = #tasklist
+					end
 				end
 			end
 		end
@@ -216,6 +236,7 @@ function sThread.runAll(tasklist)
 	return
 end
 thread = sThread
+tasksbg = {}
 tasks = {}
 
 --[[
@@ -223,7 +244,22 @@ tasks = {}
 ]]
 
 
-
+local function readPw()
+	local str = ""
+	repeat
+		local _, k = os.pullEventRaw()
+		if _ == "char" then
+			str = str..k
+		elseif _ == "key" and k == keys.delete then
+			str = string.sub(str, -2)
+			local x, y = term.getCursorPos()
+			term.setCursorPos(x-1, y)
+			term.write(" ")
+			term.setCursorPos(x-1, y)
+		end
+	until _ == "key" and k == keys.enter
+	return str
+end
 
 
 
@@ -231,6 +267,80 @@ tasks = {}
 term.setCursorPos(1,1)
 term.setBackgroundColor(colors.gray)
 term.clear()
+
+local function login()
+	local t = lib.perm.usrs.getList()
+	if #t < 1 then
+		print("Register a user.")
+		term.write("Name: ")
+		local tmpUsr = ""
+		local tmpPw = ""
+		repeat
+			tmpUsr = read()
+			if tmpUsr == "root" then
+				print("Please use another name.")
+				term.write("Name: ")
+				tmpUsr = ""
+			end
+			if #tmpUsr < 1 then
+				print("Please enter a name.")
+				term.write("Name: ")
+			end
+		until #tmpUsr > 0
+		term.write("Passoword: ")
+		repeat
+			tmpPw = readPw()
+			if #tmpPw < 1 then
+				print("Please enter a password.")
+				term.write("Password: ")
+			end
+		until #tmpPw > 0
+		local ok = lib.perm.usrs.addUser(tmpUsr, tmpPw)
+		if ok then
+			print("Successfully created!")
+		else
+			print("Error...")
+			sleep(2)
+			login()
+		end
+	elseif #t > 0 then
+		print("Login with an existing user.")
+		term.write("Name: ")
+		local tmpUsr = ""
+		local tmpPw = ""
+		repeat
+			tmpUsr = read()
+			if #tmpUsr < 1 then
+				print("Please enter a name.")
+				term.write("Name: ")
+			end
+		until #tmpUsr > 0
+		term.write("Password: ")
+		repeat
+			tmpPw = readPw()
+			if #tmpPw < 1 then
+				print("Please enter a password.")
+				term.write("Password: ")
+			end
+		until #tmpPw > 0
+		local ok = lib.perm.permission.login(tmpUsr, tmpPw)
+		if ok == false then
+			print("Oops, that didn't work, let's try again.")
+			login()
+		elseif ok == true then
+			return
+		elseif ok == nil then
+			print("User doesn't exist.")
+			login()
+		end
+	else
+		print("Error with userlist.")
+		sleep(2)
+		login()
+	end
+end
+
+login()
 
 local function cmd()
 	while true do
@@ -259,15 +369,38 @@ local function cmd()
 					end
 				end
 			)
-		if fs.exists(e) and #e > 0 then
-			local f, err = thread.new(e)
-			if not f then
-				printError(err)
-			else
-				tasks = f.next
+			
+		local bg = false
+		if string.find(e, "bg ") then
+			e = string.sub(e, 4)
+			bg = true
+			if e == nil then
+				e = ""
 			end
-			term.write("#")
-			term.write(tostring(#tasks))
+		end
+		if fs.exists(e) and #e > 0 then
+			if bg == false then
+				local f, err = thread.new(e)
+				if not f then
+					printError(err)
+				else
+					foreground[f.uid] = true
+					tasks = f.next
+				end
+				term.write("#")
+				term.write(tostring(#tasks))
+			elseif bg == true then
+				local f, err = thread.new(e)
+				if not f then
+					printError(err)
+				else
+					f['background'] = true
+					
+					tasks = f.next
+				end
+				term.write("#")
+				term.write(tostring(#tasks))
+			end
 		elseif fs.exists(e) == false and #e > 0 then
 			print("Command not found.")
 		end
@@ -348,6 +481,7 @@ self.uid = 2
 self.task = rednet.run
 self.thread = coroutine.create(self.task)
 self.file = "RedNet"
+self.background = true
 self.filter = nil
 self.error = nil
 self.dead = false
