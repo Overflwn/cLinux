@@ -43,7 +43,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	for _, a in pairs(_G) do
 		xBox[_] = a
 	end
-	local x, err = thread.new("/bin/shell.lua", 1)
+	local x, err = thread.new("/sys/shell.lua", 1)
 	if x == false then
 		cLinuxPrintError("Shell", err)
 		sleep(2)

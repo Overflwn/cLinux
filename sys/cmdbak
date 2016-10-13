@@ -29,7 +29,8 @@ local windows = {}
 local last_uid = 0
 local mainwindow = nil
 local mainuid = nil
-local lastx, lasty = 1, 1
+local lastx = 1
+local lasty = 1
 local foreground = {}
 
 function sThread.getStatus(tasklist, uid)
@@ -53,7 +54,8 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 	extra = extra or {}
 	local self = {}
 	self.main = false
-	self.lastx, self.lasty = 1, 1
+	self.lastx = 1
+	self.lasty = 1 
 	if width ~= nil then
 		if parent == nil then
 			parent = mainwindow
@@ -91,23 +93,36 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 	_copy(_G, self.env)
 	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
-	self.task, err = loadfile(file)
 	
-	if not self.task then
-		return false, err
+	if type(file) == "string" then
+		self.task, err = loadfile(file)
+		if not self.task then
+			return false, err
+		end
+	elseif type(file) == "function" then
+		self.task = file
+	else
+		return false, "function expected, got "..type(file)
 	end
+	
+	
 	setfenv(self.task, self.env)
 	self.thread = coroutine.create(self.task)
-	self.file = file
+	self.file = tostring(file)
 	self.filter = nil
 	self.error = nil
 	self.dead = false
 	self.status = "suspended"
 	self.queue = {}
+	if tArgs ~= nil then
+		self.args = tArgs
+	end
 	self.resume = function(...)
-		
 		local fst = {...}
-		coroutine.yield()
+		if self.args ~= nil then
+			fst = self.args
+			self.args = nil
+		end
 		--if self.filter == nil or fst[1] == self.filter then
 		if not self.dead then
 			if self.window ~= nil then
@@ -127,6 +142,11 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 				--term.setCursorPos(self.lastx, self.lasty)
 			end
 			--term.restoreCursor()
+			--[[if self.window ~= nil or self.main then
+				self.lastx = lastx
+				self.lasty = lasty
+				term.setCursorPos(self.lastx, self.lasty)
+			end]]
 			ok, err = coroutine.resume(self.thread, unpack(fst))
 			self.lastx, self.lasty = term.getCursorPos()
 			if self.main == true then
@@ -154,10 +174,6 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 		end
 		--end
 	end
-	if tArgs == nil then
-		tArgs = {}
-	end
-	self.resume(unpack(tArgs))
 	started[self.uid] = self
 	self.next = started
 	return self
@@ -171,10 +187,10 @@ end
 
 function sThread.kill(uid)
 	if uid < 2 and not flag.STATE_SHUTDOWN or uid < 2 and not flag.STATE_RESTART then return false end
-	if tasks[uid].status then
+	if tasks[uid] and tasks[uid].status then
 		table.remove(tasks, uid)
 		foreground[uid] = nil
-		for k, v in ipairs(tasklist) do
+		for k, v in ipairs(tasks) do
 			if k >= uid then
 				v.uid = v.uid-1
 			end
@@ -216,33 +232,74 @@ function sThread.runAll(tasklist)
 		if #tasklist < 1 then
 			break
 		end
-		for uid, task in ipairs(tasklist) do
-			if task.dead then
-				table.remove(tasklist, uid)
-				for k, v in ipairs(tasklist) do
-					if k >= uid then
-						v.uid = v.uid-1
-					end
-				end
-				foreground[uid] = nil
-				last_uid = #tasklist
-					
-			else
-				ok, err = task.resume(unpack(evt))
-				if ok == nil or ok == true then
-				else
-					printError(err)
-					task.dead = true
-					task.status = "dead"
-					foreground[uid] = nil
+		
+		local counter = 0
+		for _, a in pairs(foreground) do
+			if foreground[_] == true then
+				counter = counter+1
+			end
+		end
+		
+		if counter > 0 then
+			for uid, task in ipairs(tasklist) do
+				if task.dead then
 					table.remove(tasklist, uid)
 					for k, v in ipairs(tasklist) do
 						if k >= uid then
 							v.uid = v.uid-1
 						end
 					end
+					foreground[uid] = nil
 					last_uid = #tasklist
-					
+						
+				elseif foreground[uid] then
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+					else
+						printError(err)
+						task.dead = true
+						task.status = "dead"
+						foreground[uid] = nil
+						table.remove(tasklist, uid)
+						for k, v in ipairs(tasklist) do
+							if k >= uid then
+								v.uid = v.uid-1
+							end
+						end
+						last_uid = #tasklist
+						
+					end
+				end
+			end
+		else
+			for uid, task in ipairs(tasklist) do
+				if task.dead then
+					table.remove(tasklist, uid)
+					for k, v in ipairs(tasklist) do
+						if k >= uid then
+							v.uid = v.uid-1
+						end
+					end
+					foreground[uid] = nil
+					last_uid = #tasklist
+						
+				else
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+					else
+						printError(err)
+						task.dead = true
+						task.status = "dead"
+						foreground[uid] = nil
+						table.remove(tasklist, uid)
+						for k, v in ipairs(tasklist) do
+							if k >= uid then
+								v.uid = v.uid-1
+							end
+						end
+						last_uid = #tasklist
+						
+					end
 				end
 			end
 		end
@@ -250,13 +307,13 @@ function sThread.runAll(tasklist)
 		if #tasklist < 1 then
 			break
 		end
-		evt = {os.pullEvent()}
+		evt = {os.pullEventRaw()}
 	end
 	return
 end
 thread = sThread
 
-
+_put('thread', sThread)
 
 --[[
 	Resetting taskmanager on cmd level finished
@@ -268,19 +325,17 @@ thread = sThread
 
 local function readPw()
 	local str = ""
+	term.setCursorBlink(true)
 	repeat
 		local _, k = os.pullEventRaw()
 		if _ == "char" then
 			str = str..k
-		elseif _ == "key" and k == keys.delete then
-			str = string.sub(str, -2)
-			local x, y = term.getCursorPos()
-			term.setCursorPos(x-1, y)
-			term.write(" ")
-			term.setCursorPos(x-1, y)
+		elseif _ == "key" and k == keys.backspace and #str > 0 then
+			str = string.sub(str, 1, #str-1)
 		end
 	until _ == "key" and k == keys.enter
 	print("")
+	term.setCursorBlink(false)
 	return str
 end
 
@@ -400,14 +455,12 @@ local function readcmd(char)
 end
 
 local function cmd()
-	
 	while true do
 		
-		--thread.runAll(tasks)
-		--[[local ok, err = thread.getError()
+		local ok, err = thread.getError()
 		if ok ~= "noError" then
 			printError(err)
-		end]]
+		end
 		local cPath = shell.dir()
 		--[[term.setTextColor(colors.yellow)
 		term.write(lib.perm.permission.getCurrentUser())
@@ -417,48 +470,11 @@ local function cmd()
 		
 		term.write(cPath.."> ")
 		term.setTextColor(colors.white)]]
-		local oldread = read
-		local function read(char)
-			local str = ""
-			local c1 = coroutine.create(oldread)
-			local c2 = coroutine.create(function()
-				while true do
-						local x, y = term.getCursorPos()
-						term.setCursorBlink(true)
-						term.setCursorPos(1, y)
-						local cPath = shell.dir()
-						term.setTextColor(colors.yellow)
-						term.write(lib.perm.permission.getCurrentUser())
-						term.setTextColor(colors.lime)
-						term.write("@")
-						term.setTextColor(colors.blue)
-						term.write(cPath.."> ")
-						local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
-						term.setTextColor(colors.white)
-						if x < #all then x = #all+1 end
-						term.setCursorPos(x, y)
-				end
-			end)
-			local evt = {}
-			while true do
-				local ok, one, two = coroutine.resume(c1, unpack(evt))
-				
-				coroutine.resume(c2, unpack(evt))
-				evt = {os.pullEventRaw()}
-				
-				if coroutine.status(c1) == "dead" then
-					str = one
-					break
-				end
-			end
-			term.setCursorBlink(false)
-			return str
-		end
-		
 		local e = readcmd()
 		
 		local bg = false
-		if string.find(e, "bg ") then
+		local i, j = string.find(e, "bg ")
+		if i == 1 then
 			e = string.sub(e, 4)
 			bg = true
 			if e == nil then
@@ -503,55 +519,106 @@ local function cmd()
 			until i == nil
 		end
 		
-		if fs.exists(e) and #e > 0 then
-			if bg == false then
-				--local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
-				local f, err = loadfile(e)
-				if not f then
-					printError(err)
-				else
-					local function go()
-						f(unpack(args))
-					end
-					local ok, err = pcall(go)
-					if not ok then
-						printError(err)
-					end
-					--foreground[f.uid] = true
-					--tasks = f.next
-				end
-			elseif bg == true then
-				local f, err = startService(e, args)
-				if not f then
-					printError(err)
-				end
+		local maincommands = {
+			"kill",
+			
+		}
+		
+		local function kill(uid)
+			local tasks = thread.getList()
+			local t = tonumber(uid)
+			local ok = thread.kill(t)
+
+			if ok then
+				print("Success!")
+				return
+			elseif ok == false then
+				print("No root")
+			elseif ok == nil then
+				print("Error")
 			end
-		elseif fs.exists(e) == false and fs.exists("/bin/"..e) and #e > 0 then
-			if bg == false then
-				--local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
-				local f, err = loadfile("/bin/"..e)
-				if not f then
-					printError(err)
-				else
-					local function go()
-						f(unpack(args))
-					end
-					local ok, err = pcall(go)
-					if not ok then
-						printError(err)
-					end
-					--[[foreground[f.uid] = true
-					tasks = f.next]]
-				end
-			elseif bg == true then
-				--local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
-				local f, err = lib.startService("/bin/"..e, args)
-				if not f then
-					printError(err)
-				end
+		end
+		
+		local m = false
+		
+		for _, a in ipairs(maincommands) do
+			if a == e then
+				m = true
+				break
 			end
-		elseif fs.exists(e) == false and #e > 0 then
-			print("Command not found.")
+		end
+		local cPath = shell.path()
+		
+		local i, j = string.find(e, "/")
+		if i == 1 and j == i then
+			e = e
+		else
+			if not fs.exists("/bin/"..e) then
+				e = cPath..e
+			end
+		end
+		
+		local corruptPath = false
+		local i, j = string.find(e, "//")
+		if i == 1 and j == 2 then
+			corruptPath = true
+		end
+		
+		
+		if not corruptPath then
+			if fs.exists(e) and #e > 0 and not m then
+				if bg == false then
+					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--local f, err = loadfile(e)
+					if not f then
+						printError(err)
+					else
+						--f(unpack(args))
+						foreground[f.uid] = true
+						tasks = f.next
+					end
+				elseif bg == true then
+					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						f['background'] = true
+						
+						tasks = f.next
+					end
+				end
+			elseif fs.exists(e) == false and fs.exists("/bin/"..e) and #e > 0 and not m then
+				if bg == false then
+					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						foreground[f.uid] = true
+						tasks = f.next
+					end
+				elseif bg == true then
+					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						f['background'] = true
+						
+						tasks = f.next
+					end
+				end
+			elseif m then
+				if e == "kill" then
+					if #args ~= 1 then
+						print("Usage: kill <UID>")
+					else
+						kill(args[1])
+					end
+				end
+			elseif fs.exists(e) == false and #e > 0 then
+				print("Command not found.")
+			end
+		else
+			printError("Invalid path.")
 		end
 	end
 end
@@ -623,7 +690,7 @@ tasks = self.next]]
 --[[local self = {}
 self.main = false
 self.lastx, self.lasty = 1, 1
-self.uid = 1
+self.uid = 2
 self.task = rednet.run
 self.thread = coroutine.create(self.task)
 self.file = "RedNet"
@@ -677,13 +744,26 @@ self.resume = function(...)
 		end
 		--end
 	end
-started[1] = self
+started[2] = self
 self.next = started
 tasks = self.next]]
 
 
---while true do
-	cmd()
+local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1)
+if not n then
+	printError(err)
+end
+tasks = n.next
+local n, err = thread.new(rednet.run)
+if not n then
+	printError(err)
+end
+tasks = n.next
+
+local ok, err = pcall(thread.runAll, tasks)
+if not ok then
+	print(err)
+end
 	--[[parallel.waitForAll(
 		function()
 			thread.runAll(tasks)
@@ -691,7 +771,6 @@ tasks = self.next]]
 		function()
 			cmd()
 		end)]]
---end
 
 
 

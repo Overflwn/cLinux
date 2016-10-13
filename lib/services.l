@@ -44,7 +44,16 @@ else
 	local inhalt = file.readAll()
 	inhalt = textutils.unserialize(inhalt)
 	file.close()
-	if inhalt['/sys/commandline'] == nil then
+	local foundcore = false
+	for k, v in pairs(inhalt) do
+		if v == "core" then
+			foundcore = true
+			break
+		else
+			foundcore = false 
+		end
+	end
+	if not foundcore then
 		initServicesConf()
 	else
 		list = inhalt
@@ -57,8 +66,9 @@ end
 function serv.set(k, bool)
 	if type(bool) ~= "boolean" then return false, "boolean exptected" end
 	serv.update()
-	if list[k] then
+	if list[k] or fs.exists(k) then
 		list[k] = bool
+		serv.update()
 		return true
 	else
 		return false, "no such service"

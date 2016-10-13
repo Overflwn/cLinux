@@ -34,7 +34,7 @@ function sThread.getStatus(tasklist, uid)
 end
 
 
-function sThread.new(file, uid, fg, width, height, parent, main, lx, ly) --fg is a boolean if the process should show term drawing
+function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, args) --fg is a boolean if the process should show term drawing
 	if fg == nil then
 		fg = true
 	end
@@ -97,9 +97,19 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly) --fg is
 	self.dead = false
 	self.status = "suspended"
 	self.queue = {}
+	if args then
+		self.args = args
+	else
+		self.args = nil
+	end
 	self.resume = function(...)
-		
-		local fst = {...}
+		local fst = {}
+		if not self.args then
+			fst = {...}
+		else
+			fst = {unpack(self.args)}
+			self.args = nil
+		end
 		--if self.filter == nil or fst[1] == self.filter then
 		if not self.dead then
 			if self.window ~= nil then

@@ -9,6 +9,13 @@ while true do
 		sleep(2)
 		print("Trying to reboot")
 		os.reboot()
+	elseif flag.STATE_SHUTDOWN then
+		term.setTextColor(colors.red)
+		print("/vit/alive : Shutting down...")
+		term.setCursorBlink(false)
+		sleep(2)
+		print("Trying shutdown.")
+		os.shutdown()
 	else
 		sleep(0.1)
 	end

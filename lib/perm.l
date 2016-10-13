@@ -166,6 +166,10 @@ function permission.login(n, p)
 	end
 end
 
+function permission.getCurrentUser()
+	return name
+end
+
 perm['permission'] = permission
 perm['usrs'] = usrs
 _putLib('perm', perm)

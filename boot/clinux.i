@@ -80,6 +80,11 @@ end
 _put('_check', _check)
 -- Put in _G.flag
 _put('flag', {})
+
+
+
+
+
 function _flag(a,b) _G.flag[a] = b end
 _put('_flag', _flag)
 _put('loadAPI', loadAPI)
@@ -89,7 +94,10 @@ _put('_getflag', _getflag)
 -- Loadfile, securely
 _put('_REQUIRECACHE', {})
 local function require(file)
-	local ok, ret = pcall(loadfile(file))
+	local function go()
+		loadfile(file)
+	end
+	local ok, ret = pcall(go)
 	if ok then
 		_REQUIRECACHE[#_REQUIRECACHE+1] = file
 		return true
