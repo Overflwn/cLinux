@@ -1,3 +1,1 @@
-term.write("Hello: ")
-local e = read()
-print(e)
+Hallo

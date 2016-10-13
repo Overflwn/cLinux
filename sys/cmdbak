@@ -315,6 +315,7 @@ thread = sThread
 
 _put('thread', sThread)
 
+
 --[[
 	Resetting taskmanager on cmd level finished
 ]]
@@ -433,6 +434,11 @@ local function readcmd(char)
 		term.setTextColor(colors.lime)
 		term.write("@")
 		term.setTextColor(colors.blue)
+		local cUser = lib.perm.permission.getCurrentUser()
+		local i, j = string.find(cPath, "/home/"..cUser)
+		if i==1 then
+			cPath = "~/"..string.sub(cPath, j+1, #cPath)
+		end
 		term.write(cPath.."> ")
 		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
 		term.setTextColor(colors.white)
@@ -455,6 +461,8 @@ local function readcmd(char)
 end
 
 local function cmd()
+	local cUser = lib.perm.permission.getCurrentUser()
+	shell.setDir("/home/"..cUser)
 	while true do
 		
 		local ok, err = thread.getError()
@@ -524,14 +532,12 @@ local function cmd()
 			
 		}
 		
-		local function kill(uid)
-			local tasks = thread.getList()
+		function kill(uid)
 			local t = tonumber(uid)
 			local ok = thread.kill(t)
 
 			if ok then
 				print("Success!")
-				return
 			elseif ok == false then
 				print("No root")
 			elseif ok == nil then
@@ -547,10 +553,10 @@ local function cmd()
 				break
 			end
 		end
-		local cPath = shell.path()
+		local cPath = shell.dir()
 		
 		local i, j = string.find(e, "/")
-		if i == 1 and j == i then
+		if i == 1 and j == i or m then
 			e = e
 		else
 			if not fs.exists("/bin/"..e) then
@@ -563,7 +569,6 @@ local function cmd()
 		if i == 1 and j == 2 then
 			corruptPath = true
 		end
-		
 		
 		if not corruptPath then
 			if fs.exists(e) and #e > 0 and not m then
@@ -754,11 +759,11 @@ if not n then
 	printError(err)
 end
 tasks = n.next
-local n, err = thread.new(rednet.run)
+--[[local n, err = thread.new(rednet.run)
 if not n then
 	printError(err)
 end
-tasks = n.next
+tasks = n.next]]
 
 local ok, err = pcall(thread.runAll, tasks)
 if not ok then

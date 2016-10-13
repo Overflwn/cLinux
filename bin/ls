@@ -11,13 +11,17 @@
 		and prints them in their color (folders = blue, files = lime)
 ]]--
 
-
 local function listFiles(dir)
 	local maxX, maxY = term.getSize()
 	if dir == nil or dir == "" then
 		dir = shell.dir()
 	end
-	
+	local i, j = string.find(dir, "/", #dir)
+	if i then
+		dir = dir
+	else
+		dir = dir.."/"
+	end
 	local files = {}
 	local folders = {}
 	local raw = {}

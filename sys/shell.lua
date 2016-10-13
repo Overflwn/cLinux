@@ -27,7 +27,7 @@ term.setCursorPos(1,1)
 term.setBackgroundColor(colors.blue)
 term.setTextColor(colors.white)
 term.clear()
-
+_put('rednet', lib.rednet)
 
 
 --[[
@@ -68,8 +68,8 @@ function shell.setDir(p)
 			curPath = "/"..p
 		end
 		return
-	elseif fs.exists(curPath..p) and fs.isDir(curPath..p) then
-		curPath = curPath..p
+	elseif fs.exists(curPath.."/"..p) and fs.isDir(curPath.."/"..p) then
+		curPath = curPath.."/"..p
 		return
 	elseif fs.exists(p) == false or fs.isDir(p) == false then
 		return false
@@ -151,6 +151,19 @@ end
 function shell.getCompletionInfo()
 	return nil
 end
+function shell.startServ(k, args)
+	local n, err = thread.new(k, nil, nil, nil, nil, nil, nil, nil, nil, args)
+	if not n then
+		return false, err
+	else
+		tasks = n.next
+		return true
+	end
+end
+function shell.getServ()
+	return tasks
+end
+
 
 function printError(str)
 	local c = term.getTextColor()
@@ -209,16 +222,10 @@ for _, a in pairs(services) do
 	end
 end
 
-function startServ(k, args)
-	local n, err = thread.new(_, nil, nil, nil, nil, nil, nil, nil, nil, args)
-	if not l then
-		return false, err
-	else
-		tasks = n.next
-		return true
-	end
-end
-_putLib('startService', startServ)
+
+
+
+
 
 while true do
 	
