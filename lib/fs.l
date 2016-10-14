@@ -86,9 +86,9 @@ function _fs.makeDir(p)
 end
 
 function _fs.open(p, mode)
-	--[[if string.find(p, "/rom/", 1, 5) or string.find(p, "rom/", 1, 4) then
+	if string.find(p, "/rom/", 1, 5) or string.find(p, "rom/", 1, 4) then
 		return nil
-	end]]
+	end
 	if mode == "w" or mode == "a" or mode == "bw" then
 		local ok = lib.perm.permission.check(p)
 		if ok ~= "w" then

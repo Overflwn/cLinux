@@ -1039,15 +1039,32 @@ local function cmd()
 			e = e
 		else
 			if not fs.exists("/bin/"..e) then
-				e = cPath..e
+				e = cPath.."/"..e
 			end
 		end
 		
 		
 		local i, j = string.find(e, "//")
-		if i == 1 and j == 2 and not corruptPath then
+		if i then
 			corruptPath = true
 			corruptMessage = "Invalid path."
+		end
+		local i, j = string.find(e, "[..]")
+		if i and #e > 2 then
+			corruptPath = true
+			corruptMessage = "Invalid path."
+		end
+		for _, a in ipairs(args) do
+			local i, j = string.find(a, "//")
+			if i then
+				corruptPath = true
+				corruptMessage = "Invalid path."
+			end
+			local i, j = string.find(a, "[..]")
+			if i and #a > 2 then
+				corruptPath = true
+				corruptMessage = "Invalid path."
+			end
 		end
 		
 		if not corruptPath then
