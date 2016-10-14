@@ -462,64 +462,6 @@ end
 
 login()
 
-local function readcmdold(char)
-	local str = ""
-	local completions = {}
-	local countercom = 1
-	local function listt(path)
-		local f = fs.list(path)
-		for _, a in ipairs(f) do
-			if fs.isDir(path..a) then
-				local t = listt(path..a)
-				for k, v in ipairs(t) do
-					table.insert(f, v)
-				end
-			else
-				table.insert(f, a)
-			end
-		end
-	end
-	repeat
-		local _, k = os.pullEventRaw()
-		local x, y = term.getCursorPos()
-		term.setCursorBlink(true)
-		term.setCursorPos(1, y)
-		local cPath = shell.dir()
-		term.setTextColor(colors.yellow)
-		term.write(lib.perm.permission.getCurrentUser())
-		term.setTextColor(colors.lime)
-		term.write("@")
-		term.setTextColor(colors.blue)
-		local cUser = lib.perm.permission.getCurrentUser()
-		local i, j = string.find(cPath, "/home/"..cUser)
-		if i==1 then
-			cPath = "~/"..string.sub(cPath, j+1, #cPath)
-		end
-		term.write(cPath.."> ")
-		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
-		term.setTextColor(colors.white)
-		if x < #all then x = #all+1 end
-		term.setCursorPos(x, y)
-		if _ == "char" then
-
-			str = str..k
-			term.write(k)
-		elseif _ == "key" and k == keys.backspace and #str > 0 then
-			strcom = nil
-			str = string.sub(str, 1, #str-1)
-			local x, y = term.getCursorPos()
-			term.setCursorPos(x-1, y)
-			term.write(" ")
-			term.setCursorPos(x-1, y)
-		end
-
-
-
-	until _ == "key" and k == keys.enter
-	term.setCursorBlink(false)
-	print("")
-	return str
-end
 local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read(), just to print the current user and path at the front
     term.setCursorBlink( true )
 
@@ -654,7 +596,7 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
         end
     end
     while true do
-
+				term.setCursorBlink( true )
         local sEvent, param = os.pullEvent()
 
 		redraw()
@@ -682,6 +624,7 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
                     uncomplete()
                     redraw()
                 end
+								term.setCursorBlink(false)
                 break
 
             elseif param == keys.left then
@@ -815,50 +758,6 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
     return sLine
 end
 
-local function rcmd()
-	local function go2()
-		local x, y = term.getCursorPos()
-		term.setCursorPos(1, y)
-		local cPath = shell.dir()
-		term.setTextColor(colors.yellow)
-		term.write(lib.perm.permission.getCurrentUser())
-		term.setTextColor(colors.lime)
-		term.write("@")
-		term.setTextColor(colors.blue)
-		local cUser = lib.perm.permission.getCurrentUser()
-		local i, j = string.find(cPath, "/home/"..cUser)
-		if i==1 then
-			cPath = "~/"..string.sub(cPath, j+1, #cPath)
-		end
-		term.write(cPath.."> ")
-		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
-		term.setTextColor(colors.white)
-		if x < #all then x = #all+1 end
-		term.setCursorPos(x, y)
-		sleep(0.25)
-	end
-	local function go1()
-		local e = readcmd( nil, {}, shell.complete )
-		return e
-	end
-
-	local c1 = coroutine.create(go1)
-	local c2 = coroutine.create(go2)
-
-	local evt = {}
-	local str = ""
-	while true do
-		coroutine.resume(c2, unpack(evt))
-		_, str = coroutine.resume(c1, unpack(evt))
-
-		evt = {os.pullEvent()}
-		if coroutine.status(c1) == "dead" then
-			break
-		end
-	end
-	return str
-end
-
 local function cmd()
 
 
@@ -870,7 +769,6 @@ local function cmd()
 	local cUser = lib.perm.permission.getCurrentUser()
 	shell.setDir("/home/"..cUser)
 	while true do
-
 		local ok, err = thread.getError()
 		if ok ~= "noError" then
 			printError(err)

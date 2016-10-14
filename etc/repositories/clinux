@@ -6,3 +6,12 @@ name = edit
 	version = 1.0
 	size = 17287
 end
+
+name = luaide
+	type = raw
+		url = http://pastebin.com/raw/vyAZc6tJ
+		filename = luaide
+	dependencies = none
+	version = 1.0
+	size = 61948
+end
