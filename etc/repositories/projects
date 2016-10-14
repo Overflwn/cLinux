@@ -27,8 +27,8 @@ name = gpssatellite
 	category = turtle gps
 	dependencies = lyqyd/setup
 	target = /etc/projects
-	version = 0.1
-	size = 9193
+	version = 0.2
+	size = 9187
 end
 
 name = lyqyd-house
@@ -60,6 +60,17 @@ name = storage-top
 	category = turtle
 	dependencies = lyqyd/setup
 	target = /etc/projects
+	version = 0.2
+	size = 12150
+end
+
+name = storage-layer
+	type = raw
+		url = https://raw.githubusercontent.com/lyqyd/cc-generalized-setup/master/projects/storage-layer
+		filename = storage-layer
+	category = turtle
+	dependencies = lyqyd/setup
+	target = /etc/projects
 	version = 0.1
-	size = 12135
+	size = 2632
 end

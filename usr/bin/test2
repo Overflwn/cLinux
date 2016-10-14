@@ -1,4 +1,0 @@
---This is a dummyfile, which tests if it can edit protected values. (normally the OS gives an error)
-
-currentUsr = "Hi"
-print(currentUsr)

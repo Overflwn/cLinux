@@ -149,7 +149,7 @@ local mt = {
 	}
 }
 
-local function toBytes(t, n)
+function toBytes(t, n)
 	local b = {}
 	for i = 1, n do
 		b[(i-1)*4+1] = band(brshift(band(t[i], 0xFF000000), 24), 0xFF)
@@ -159,6 +159,7 @@ local function toBytes(t, n)
 	end
 	return setmetatable(b, mt)
 end
+
 
 function digest(data)
 	data = data or ""

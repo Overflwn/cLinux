@@ -1,7 +1,22 @@
-local function del(d)
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/mkdir
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program creates a folder in the specified path or
+		in the current directory.
+]]--
+
+local function m(d)
+	local currentDir = shell.dir()
 	local r = false
 	local falseDir = false
 	local inhome = true
+	local currentUsr = lib.perm.permission.getCurrentUser()
 	if currentUsr ~= "root" then
 		r = false
 	else
@@ -12,14 +27,21 @@ local function del(d)
 	if a or i ~= nil and i == j then
 		falseDir = true
 	end
-	local a, b = string.find(currentDir, "/usr/"..currentUsr.."/home/")
+	local a, b = string.find(currentDir, "/home/"..currentUsr.."/")
 	if r == false and a == nil then
 		inhome = false
 	end
 	
 	if falseDir == false then
-		local a, b = string.find(d, "../")
+		
+		
+		local path = currentDir.."/"..d
+		local a, b = string.find(d, "/")
 		if a == 1 then
+			path = d
+		end
+		local a, b = string.find(path, "[..]/")
+		if a then
 			--d = string.gsub(d, "/", "", 1)
 			local col = term.getTextColor()
 			term.setTextColor(colors.red)
@@ -27,21 +49,16 @@ local function del(d)
 			term.setTextColor(col)
 			return
 		end
-		local path = currentDir..d
-		local a, b = string.find(d, "/")
-		if a == 1 then
-			path = d
-		end
-		local a = fs.delete(path)
-		if a == false then
+		local a = fs.makeDir(path)
+		if a == "noPermission" then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
 			print("You have no privileges, try 'sudo'.")
 			term.setTextColor(c)
-		elseif a == "Folder/File does not exist." then
+		elseif a == "error" then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
-			print(a)
+			print("An error occured.")
 			term.setTextColor(c)
 		else
 			return true
@@ -57,11 +74,13 @@ local function del(d)
 		return false
 	end
 end
+
+
 local tArgs = {...}
 
 if #tArgs < 1 or #tArgs > 1 then
 	print("Usage:")
-	print("		rm <path>")
+	print("		mkdir <folderName>")
 else
-	del(tArgs[1])
+	m(tArgs[1])
 end

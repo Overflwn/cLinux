@@ -1,8 +1,0 @@
-os.loadAPI("/sys/API/blake")
-
-str = blake.digest("test")
-print(str)
-str:toHex()
-sleep(2)
-term.setTextColor(colors.yellow)
-print(str)

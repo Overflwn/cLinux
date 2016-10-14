@@ -1,13 +1,22 @@
 --[[
-	Custom mkdir command, which checks which user is logged in
-	This will not allow normal users to make a directory under their
-	home directory.
-]]
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
 
-local function m(d)
+	NAME:        /bin/rm
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program deletes a specified file in the specified path / in the
+		current directory.
+]]--
+
+local function del(d)
 	local r = false
+	local currentDir = shell.dir().."/"
 	local falseDir = false
 	local inhome = true
+	local currentUsr = lib.perm.permission.getCurrentUser()
 	if currentUsr ~= "root" then
 		r = false
 	else
@@ -24,8 +33,14 @@ local function m(d)
 	end
 	
 	if falseDir == false then
-		local a, b = string.find(d, "../")
+		
+		local path = currentDir..d
+		local a, b = string.find(d, "/")
 		if a == 1 then
+			path = d
+		end
+		local a, b = string.find(d, "[..]/")
+		if a then
 			--d = string.gsub(d, "/", "", 1)
 			local col = term.getTextColor()
 			term.setTextColor(colors.red)
@@ -33,21 +48,18 @@ local function m(d)
 			term.setTextColor(col)
 			return
 		end
-		local path = currentDir..d
-		local a, b = string.find(d, "/")
-		if a == 1 then
-			path = d
+		if not fs.exists(path) then
+			local col = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("Folder/File does not exist.")
+			term.setTextColor(col)
+			return
 		end
-		local a = fs.makeDir(path)
-		if a == false then
+		local a = fs.delete(path)
+		if a == "noPermission" then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
 			print("You have no privileges, try 'sudo'.")
-			term.setTextColor(c)
-		elseif a == "Folder/File already exists." then
-			local c = term.getTextColor()
-			term.setTextColor(colors.red)
-			print(a)
 			term.setTextColor(c)
 		else
 			return true
@@ -63,13 +75,11 @@ local function m(d)
 		return false
 	end
 end
-
-
 local tArgs = {...}
 
 if #tArgs < 1 or #tArgs > 1 then
 	print("Usage:")
-	print("		mkdir <folderName>")
+	print("		rm <path>")
 else
-	m(tArgs[1])
+	del(tArgs[1])
 end

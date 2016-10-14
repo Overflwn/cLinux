@@ -1,0 +1,1260 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /sys/commandline
+	CATEGORY:    boot
+	SET:         Boot III
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This script is the commandline and is run as a service.
+]]--
+
+
+--[[
+	Resetting taskmanager on cmd level
+]]
+
+
+sThread = {}
+tasksbg = {}
+tasks = {}
+
+local errors = {
+	ok = "noError",
+	err = nil,
+}
+local started = {}
+local windows = {}
+local last_uid = 0
+local mainwindow = nil
+local mainuid = nil
+local lastx = 1
+local lasty = 1
+local foreground = {}
+local sudo = false
+function sThread.getStatus(tasklist, uid)
+	if tasklist[uid] then
+		return tasklist[uid].status
+	else
+		return nil
+	end
+end
+
+
+function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) --fg is a boolean if the process should show term drawing
+	if fg == nil then
+		fg = true
+	end
+	if main == nil then
+		main = false		--main indicates if that thread is the core window, for example the commandline
+	end
+	uid = uid or last_uid + 1
+	last_uid = last_uid + 1
+	extra = extra or {}
+	local self = {}
+	self.main = false
+	self.lastx = 1
+	self.lasty = 1 
+	if width ~= nil then
+		if parent == nil then
+			parent = mainwindow
+		end
+		self.window = window.create(parent, 1, 1, width, height, fg)
+		self.window.clear()
+	end
+	if main == true then
+		self.main = true
+		mainuid = uid
+		mainwindow = self.window
+		if lx ~= nil then
+			self.lastx = lx
+		else
+			self.lastx = 1
+		end
+		if ly ~= nil then
+			self.lasty = ly
+		else
+			self.lasty = 1
+		end
+		lastx = self.lastx
+		lasty = self.lasty
+	else
+		self.main = false
+	end
+	
+	self.uid = uid
+	local function _copy(a, b)
+		for k, v in pairs(a) do
+			b[k] = v
+		end
+		b['thread'] = thread
+		b['shell']['getRunningProgram'] = function()
+			return tostring(self.file)
+		end
+	end
+	self.env = {}
+	_copy(_G, self.env)
+	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
+	for k, v in ipairs(blacklist) do self.env[v] = nil end
+	
+	if type(file) == "string" then
+		self.task, err = loadfile(file)
+		if not self.task then
+			return false, err
+		end
+	elseif type(file) == "function" then
+		self.task = file
+	else
+		return false, "function expected, got "..type(file)
+	end
+	
+	
+	setfenv(self.task, self.env)
+	self.thread = coroutine.create(self.task)
+	self.file = tostring(file)
+	self.filter = nil
+	self.error = nil
+	self.dead = false
+	self.status = "suspended"
+	self.queue = {}
+	if tArgs ~= nil then
+		self.args = tArgs
+	end
+	self.resume = function(...)
+		local fst = {...}
+		if self.args ~= nil then
+			fst = self.args
+			self.args = nil
+		end
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--[[if self.main then
+					self.lastx, self.lasty = lastx, lasty
+				end]]
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			--[[if self.window ~= nil or self.main then
+				self.lastx = lastx
+				self.lasty = lasty
+				term.setCursorPos(self.lastx, self.lasty)
+			end]]
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return 
+		end
+		--end
+	end
+	started[self.uid] = self
+	self.next = started
+	return self
+end
+
+function sThread.queue(process, event, parameters)
+	process.queue[#process.queue+1] = {event = event, parameters = parameters}
+	return true
+end
+
+
+function sThread.kill(uid)
+	if uid < 2 and not flag.STATE_SHUTDOWN or uid < 2 and not flag.STATE_RESTART then return false end
+	if tasks[uid] and tasks[uid].status then
+		table.remove(tasks, uid)
+		foreground[uid] = nil
+		for k, v in ipairs(tasks) do
+			if k >= uid then
+				v.uid = v.uid-1
+			end
+		end
+		last_uid = #tasks
+		--tasks[uid].dead = true
+		--tasks[uid].status = "dead"
+		return true
+	else
+		return nil
+	end
+end
+
+
+function sThread.getList()
+	return tasks
+end
+
+function sThread.killAll(tasklist)
+	if not flag.STATE_SHUTDOWN or not flag.STATE_RESTART then return false end
+	for uid, task in pairs(tasklist) do
+			sThread.kill(task)
+	end
+end
+
+function sThread.getError()
+	if errors.ok ~= "noError" then
+		local oldok, olderr = errors.ok, errors.err
+		errors.ok, errors.err = "noError", nil
+		return oldok, olderr
+	else
+		return "noError"
+	end
+end
+
+function sThread.runAll(tasklist)
+	evt = {"key", keys.l}
+	while true do
+		if #tasklist < 1 then
+			break
+		end
+		
+		local counter = 0
+		for _, a in pairs(foreground) do
+			if foreground[_] == true then
+				counter = counter+1
+			end
+		end
+		
+		if counter > 0 then
+			for uid, task in ipairs(tasklist) do
+				if task.dead then
+					
+					table.remove(tasklist, uid)
+					for k, v in ipairs(tasklist) do
+						if k >= uid then
+							v.uid = v.uid-1
+						end
+					end
+					foreground[uid] = nil
+					last_uid = #tasklist
+						
+				elseif foreground[uid] then
+					
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+						if task.dead then
+							if sudo then
+								sudo = false
+								local ok = lib.perm.permission.reLog()
+								if not ok then
+									printError("Unknown error at reLog")
+								end
+							end
+						end
+					else
+						printError(err)
+						task.dead = true
+						task.status = "dead"
+						foreground[uid] = nil
+						table.remove(tasklist, uid)
+						for k, v in ipairs(tasklist) do
+							if k >= uid then
+								v.uid = v.uid-1
+							end
+						end
+						last_uid = #tasklist
+						if sudo then
+							sudo = false
+							local ok = lib.perm.permission.reLog()
+							if not ok then
+								printError("Unknown error at reLog")
+							end
+						end
+						
+					end
+				end
+			end
+		else
+			for uid, task in ipairs(tasklist) do
+				if task.dead then
+					table.remove(tasklist, uid)
+					for k, v in ipairs(tasklist) do
+						if k >= uid then
+							v.uid = v.uid-1
+						end
+					end
+					foreground[uid] = nil
+					last_uid = #tasklist
+						
+				else
+					ok, err = task.resume(unpack(evt))
+					if ok == nil or ok == true then
+						if task.dead then
+							if sudo then
+								sudo = false
+								local ok = lib.perm.permission.reLog()
+								if not ok then
+									printError("Unknown error at reLog")
+								end
+							end
+						end
+					else
+						printError(err)
+						task.dead = true
+						task.status = "dead"
+						foreground[uid] = nil
+						table.remove(tasklist, uid)
+						for k, v in ipairs(tasklist) do
+							if k >= uid then
+								v.uid = v.uid-1
+							end
+						end
+						last_uid = #tasklist
+						if sudo then
+							sudo = false
+							local ok = lib.perm.permission.reLog()
+							if not ok then
+								printError("Unknown error at reLog")
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		if #tasklist < 1 then
+			break
+		end
+		evt = {os.pullEventRaw()}
+	end
+	return
+end
+thread = sThread
+
+
+--[[
+	Resetting taskmanager on cmd level finished
+]]
+
+
+
+
+
+function readPw()
+	local str = ""
+	term.setCursorBlink(true)
+	repeat
+		local _, k = os.pullEventRaw()
+		if _ == "char" then
+			str = str..k
+		elseif _ == "key" and k == keys.backspace and #str > 0 then
+			str = string.sub(str, 1, #str-1)
+		end
+	until _ == "key" and k == keys.enter
+	print("")
+	term.setCursorBlink(false)
+	return str
+end
+_put('readPw', readPw)
+
+
+
+term.setCursorPos(1,1)
+term.setBackgroundColor(colors.black)
+term.clear()
+
+local function login()
+	local t = lib.perm.usrs.getList()
+	if #t < 1 then
+		print("Register a user.")
+		term.write("Name: ")
+		local tmpUsr = ""
+		local tmpPw = ""
+		repeat
+			tmpUsr = read()
+			if tmpUsr == "root" then
+				print("Please use another name.")
+				term.write("Name: ")
+				tmpUsr = ""
+			end
+			if #tmpUsr < 1 then
+				print("Please enter a name.")
+				term.write("Name: ")
+			end
+		until #tmpUsr > 0
+		term.write("Password: ")
+		repeat
+			tmpPw = readPw()
+			if #tmpPw < 1 then
+				print("Please enter a password.")
+				term.write("Password: ")
+			end
+		until #tmpPw > 0
+		local ok = lib.perm.usrs.addUser(tmpUsr, tmpPw)
+		if ok then
+			print("Successfully created!")
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(colors.black)
+			term.clear()
+			fs.makeDir("/home/root")
+			login()
+		else
+			print("Error...")
+			sleep(2)
+			login()
+		end
+	elseif #t > 0 then
+		print("Login with an existing user.")
+		term.write("Name: ")
+		local tmpUsr = ""
+		local tmpPw = ""
+		repeat
+			tmpUsr = read()
+			if #tmpUsr < 1 then
+				print("Please enter a name.")
+				term.write("Name: ")
+			end
+		until #tmpUsr > 0
+		term.write("Password: ")
+		repeat
+			tmpPw = readPw()
+			if #tmpPw < 1 then
+				print("Please enter a password.")
+				term.write("Password: ")
+			end
+		until #tmpPw > 0
+		local ok = lib.perm.permission.login(tmpUsr, tmpPw)
+		if ok == false then
+			print("Oops, that didn't work, let's try again.")
+			login()
+		elseif ok == true then
+			return
+		elseif ok == nil then
+			print("User doesn't exist.")
+			login()
+		end
+	else
+		print("Error with userlist.")
+		sleep(2)
+		login()
+	end
+end
+
+login()
+
+local function readcmdold(char)
+	local str = ""
+	local completions = {}
+	local countercom = 1
+	local function listt(path)
+		local f = fs.list(path)
+		for _, a in ipairs(f) do
+			if fs.isDir(path..a) then
+				local t = listt(path..a)
+				for k, v in ipairs(t) do
+					table.insert(f, v)
+				end
+			else
+				table.insert(f, a)
+			end
+		end
+	end
+	repeat
+		local _, k = os.pullEventRaw()
+		local x, y = term.getCursorPos()
+		term.setCursorBlink(true)
+		term.setCursorPos(1, y)
+		local cPath = shell.dir()
+		term.setTextColor(colors.yellow)
+		term.write(lib.perm.permission.getCurrentUser())
+		term.setTextColor(colors.lime)
+		term.write("@")
+		term.setTextColor(colors.blue)
+		local cUser = lib.perm.permission.getCurrentUser()
+		local i, j = string.find(cPath, "/home/"..cUser)
+		if i==1 then
+			cPath = "~/"..string.sub(cPath, j+1, #cPath)
+		end
+		term.write(cPath.."> ")
+		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
+		term.setTextColor(colors.white)
+		if x < #all then x = #all+1 end
+		term.setCursorPos(x, y)
+		if _ == "char" then
+			
+			str = str..k
+			term.write(k)
+		elseif _ == "key" and k == keys.backspace and #str > 0 then
+			strcom = nil
+			str = string.sub(str, 1, #str-1)
+			local x, y = term.getCursorPos()
+			term.setCursorPos(x-1, y)
+			term.write(" ")
+			term.setCursorPos(x-1, y)
+		end
+		
+		
+		
+	until _ == "key" and k == keys.enter
+	term.setCursorBlink(false)
+	print("")
+	return str
+end
+local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read(), just to print the current user and path at the front
+    term.setCursorBlink( true )
+
+    local sLine = ""
+    local nHistoryPos
+    local nPos = 0
+    if _sReplaceChar then
+        _sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+    end
+
+    local tCompletions
+    local nCompletion
+    local function recomplete()
+        if _fnComplete and nPos == string.len(sLine) then
+            tCompletions = _fnComplete( sLine )
+            if tCompletions and #tCompletions > 0 then
+                nCompletion = 1
+            else
+                nCompletion = nil
+            end
+        else
+            tCompletions = nil
+            nCompletion = nil
+        end
+    end
+
+    local function uncomplete()
+        tCompletions = nil
+        nCompletion = nil
+    end
+
+    local w = term.getSize()
+    local sx = term.getCursorPos()
+
+	local function rdfirst()
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		local cPath = shell.dir()
+		term.setTextColor(colors.yellow)
+		term.write(lib.perm.permission.getCurrentUser())
+		term.setTextColor(colors.lime)
+		term.write("@")
+		term.setTextColor(colors.blue)
+		local cUser = lib.perm.permission.getCurrentUser()
+		local i, j = string.find(cPath, "/home/"..cUser)
+		if i==1 then
+			cPath = "~/"..string.sub(cPath, j+1, #cPath)
+		end
+		term.write(cPath.."> ")
+		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
+		term.setTextColor(colors.white)
+		local nx, ny = term.getCursorPos()
+		term.setCursorPos(x, y)
+		sx = nx
+	end
+	
+    local function redraw( _bClear )
+		term.clearLine()
+		rdfirst()
+		
+	
+	
+        local nScroll = 0
+        if sx + nPos >= w then
+            nScroll = (sx + nPos) - w
+        end
+		
+		
+		
+		
+		
+		
+		
+        local cx,cy = term.getCursorPos()
+        term.setCursorPos( sx, cy )
+        local sReplace = (_bClear and " ") or _sReplaceChar
+        if sReplace then
+            term.write( string.rep( sReplace, math.max( string.len(sLine) - nScroll, 0 ) ) )
+        else
+            term.write( string.sub( sLine, nScroll + 1 ) )
+        end
+
+        if nCompletion then
+            local sCompletion = tCompletions[ nCompletion ]
+            local oldText, oldBg
+            if not _bClear then
+                oldText = term.getTextColor()
+                oldBg = term.getBackgroundColor()
+                term.setTextColor( colors.white )
+                term.setBackgroundColor( colors.gray )
+            end
+            if sReplace then
+				
+                term.write( string.rep( sReplace, string.len( sCompletion ) ) )
+            else
+				
+                term.write( sCompletion )
+            end
+            if not _bClear then
+                term.setTextColor( oldText )
+                term.setBackgroundColor( oldBg )
+            end
+        end
+
+        term.setCursorPos( sx + nPos - nScroll, cy )
+    end
+    
+    local function clear()
+		
+        redraw( true )
+    end
+
+    recomplete()
+    redraw()
+
+	
+	
+	
+    local function acceptCompletion()
+        if nCompletion then
+            -- Clear
+            clear()
+
+            -- Find the common prefix of all the other suggestions which start with the same letter as the current one
+            local sCompletion = tCompletions[ nCompletion ]
+            sLine = sLine .. sCompletion
+            nPos = string.len( sLine )
+
+            -- Redraw
+            recomplete()
+            redraw()
+        end
+    end
+    while true do
+		
+        local sEvent, param = os.pullEvent()
+		
+		redraw()
+		if sEvent == "char" then
+            -- Typed key
+            clear()
+            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+            nPos = nPos + 1
+            recomplete()
+            redraw()
+
+        elseif sEvent == "paste" then
+            -- Pasted text
+            clear()
+            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+            nPos = nPos + string.len( param )
+            recomplete()
+            redraw()
+
+        elseif sEvent == "key" then
+            if param == keys.enter then
+                -- Enter
+                if nCompletion then
+                    clear()
+                    uncomplete()
+                    redraw()
+                end
+                break
+                
+            elseif param == keys.left then
+                -- Left
+                if nPos > 0 then
+                    clear()
+                    nPos = nPos - 1
+                    recomplete()
+                    redraw()
+                end
+                
+            elseif param == keys.right then
+                -- Right                
+                if nPos < string.len(sLine) then
+                    -- Move right
+                    clear()
+                    nPos = nPos + 1
+                    recomplete()
+                    redraw()
+                else
+                    -- Accept autocomplete
+                    acceptCompletion()
+                end
+
+            elseif param == keys.up or param == keys.down then
+                -- Up or down
+                if nCompletion then
+                    -- Cycle completions
+                    clear()
+                    if param == keys.up then
+                        nCompletion = nCompletion - 1
+                        if nCompletion < 1 then
+                            nCompletion = #tCompletions
+                        end
+                    elseif param == keys.down then
+                        nCompletion = nCompletion + 1
+                        if nCompletion > #tCompletions then
+                            nCompletion = 1
+                        end
+                    end
+                    redraw()
+
+                elseif _tHistory then
+                    -- Cycle history
+                    clear()
+                    if param == keys.up then
+                        -- Up
+                        if nHistoryPos == nil then
+                            if #_tHistory > 0 then
+                                nHistoryPos = #_tHistory
+                            end
+                        elseif nHistoryPos > 1 then
+                            nHistoryPos = nHistoryPos - 1
+                        end
+                    else
+                        -- Down
+                        if nHistoryPos == #_tHistory then
+                            nHistoryPos = nil
+                        elseif nHistoryPos ~= nil then
+                            nHistoryPos = nHistoryPos + 1
+                        end                        
+                    end
+                    if nHistoryPos then
+                        sLine = _tHistory[nHistoryPos]
+                        nPos = string.len( sLine ) 
+                    else
+                        sLine = ""
+                        nPos = 0
+                    end
+                    uncomplete()
+                    redraw()
+
+                end
+
+            elseif param == keys.backspace then
+                -- Backspace
+                if nPos > 0 then
+                    clear()
+                    sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+                    nPos = nPos - 1
+                    recomplete()
+                    redraw()
+                end
+
+            elseif param == keys.home then
+                -- Home
+                if nPos > 0 then
+                    clear()
+                    nPos = 0
+                    recomplete()
+                    redraw()
+                end
+
+            elseif param == keys.delete then
+                -- Delete
+                if nPos < string.len(sLine) then
+                    clear()
+                    sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )                
+                    recomplete()
+                    redraw()
+                end
+
+            elseif param == keys["end"] then
+                -- End
+                if nPos < string.len(sLine ) then
+                    clear()
+                    nPos = string.len(sLine)
+                    recomplete()
+                    redraw()
+                end
+
+            elseif param == keys.tab then
+                -- Tab (accept autocomplete)
+                acceptCompletion()
+
+            end
+
+        elseif sEvent == "term_resize" then
+            -- Terminal resized
+            w = term.getSize()
+            redraw()
+
+        end
+    end
+
+    local cx, cy = term.getCursorPos()
+    term.setCursorBlink( false )
+    term.setCursorPos( w + 1, cy )
+    print()
+    
+    return sLine
+end
+
+local function rcmd()
+	local function go2()
+		local x, y = term.getCursorPos()
+		term.setCursorPos(1, y)
+		local cPath = shell.dir()
+		term.setTextColor(colors.yellow)
+		term.write(lib.perm.permission.getCurrentUser())
+		term.setTextColor(colors.lime)
+		term.write("@")
+		term.setTextColor(colors.blue)
+		local cUser = lib.perm.permission.getCurrentUser()
+		local i, j = string.find(cPath, "/home/"..cUser)
+		if i==1 then
+			cPath = "~/"..string.sub(cPath, j+1, #cPath)
+		end
+		term.write(cPath.."> ")
+		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
+		term.setTextColor(colors.white)
+		if x < #all then x = #all+1 end
+		term.setCursorPos(x, y)
+		sleep(0.25)
+	end
+	local function go1()
+		local e = readcmd( nil, {}, shell.complete )
+		return e
+	end
+	
+	local c1 = coroutine.create(go1)
+	local c2 = coroutine.create(go2)
+	
+	local evt = {}
+	local str = ""
+	while true do
+		coroutine.resume(c2, unpack(evt))
+		_, str = coroutine.resume(c1, unpack(evt))
+		
+		evt = {os.pullEvent()}
+		if coroutine.status(c1) == "dead" then
+			break
+		end
+	end
+	return str
+end
+
+local function cmd()
+	
+
+
+
+
+
+
+	local cUser = lib.perm.permission.getCurrentUser()
+	shell.setDir("/home/"..cUser)
+	while true do
+		
+		local ok, err = thread.getError()
+		if ok ~= "noError" then
+			printError(err)
+		end
+		local cPath = shell.dir()
+		term.setTextColor(colors.yellow)
+		term.write(lib.perm.permission.getCurrentUser())
+		term.setTextColor(colors.lime)
+		term.write("@")
+		term.setTextColor(colors.blue)
+		local i, j = string.find(cPath, "/home/"..lib.perm.permission.getCurrentUser())
+		if i == 1 then
+			cPath = "~/"..string.sub(cPath, j+1)
+		end
+		term.write(cPath.."> ")
+		term.setTextColor(colors.white)
+		local e = readcmd( nil, {}, shell.complete )
+		local corruptPath = false
+		local corruptMessage = ""
+		local bg = false
+		function sd()
+			term.write("Enter root password: ")
+			local p = readPw()
+			local ok = lib.perm.permission.login("root", p)
+			if not ok then
+				printError("Wrong password.")
+			elseif ok == true then
+				sudo = true
+			end
+		end
+		local i, j = string.find(e, "sudo ")
+		if i == 1 then
+			e = string.sub(e, 6)
+			sd()
+			if e == nil then
+				e = ""
+			end
+		end
+		
+		local i, j = string.find(e, "bg ")
+		if i == 1 then
+			e = string.sub(e, 4)
+			bg = true
+			if e == nil then
+				e = ""
+			end
+		end
+		
+		local args = {}
+		local oe = e
+		local arg = ""
+		local i, j = string.find(e, " ")
+		if i == nil then
+			e = e
+		else
+			arg = string.sub(e, j+1, #e)
+			e = string.sub(e, 1, i-1)
+			
+		end
+		
+		if arg == nil or arg == "" then
+			arg = ""
+		else
+			repeat
+				local i, j = string.find(arg, " ")
+				if i ~= nil then
+					local a = string.sub(arg, 1, i-1)
+					local x, y = string.find(a, "~/")
+					if x == 1 and y == 2 then
+						local c = string.sub(a, 3, #a)
+						a = "/home/"..lib.perm.permission.getCurrentUser().."/"..c
+					end
+					table.insert(args, a)
+					arg = string.sub(arg, j+1, #arg)
+				else
+					local i, j = string.find(arg, "~/")
+					if i == 1 and j == 2 then
+						local c = string.sub(arg, 3, #arg)
+						arg = "/home/"..lib.perm.permission.getCurrentUser().."/"..c
+					end
+					table.insert(args, arg)
+				end
+			until i == nil
+		end
+		
+		local maincommands = {
+			"kill",
+			"service",
+		}
+		
+		function kill(uid)
+			local t = tonumber(uid)
+			local ok = thread.kill(t)
+
+			if ok then
+				print("Success!")
+			elseif ok == false then
+				print("No root")
+			elseif ok == nil then
+				print("Error")
+			end
+		end
+		
+		
+		function sv(...)
+			local tArgs = {...}
+			local jArgs = {}
+			for _, a in ipairs(tArgs) do
+				if _ > 2 then
+					table.insert(jArgs, a)
+				end
+			end
+			local command = tArgs[1]
+			local p = tArgs[2]
+			if command == "start" then
+				local ok, err = shell.startServ(p, jArgs)
+				if not ok then
+					printError(err)
+				else
+					print("Successfully started!")
+				end
+			elseif command == "stop" then
+				local ok = shell.stopServ(p)
+				if not ok then
+					printError("Service not found.")
+				else
+					print("Stopped.")
+				end
+			elseif command == "enable" then
+				local ok, err = lib.serv.set(p, true)
+				if not ok then
+					printError(err)
+				else
+					print("Successfully enabled! You need to restart.")
+				end
+			elseif command == "disable" then
+				local ok, err = lib.serv.set(p, false)
+				if not ok then
+					printError(err)
+				else
+					print("Successfully disabled! You need to restart.")
+				end
+			else
+				print("Usage: service <start|stop|enable|disable> <name/path> [args]")
+			end
+		end
+		
+		local m = false
+		
+		for _, a in ipairs(maincommands) do
+			if a == e then
+				m = true
+				break
+			end
+		end
+		local cPath = shell.dir()
+		
+		local i, j = string.find(e, "/")
+		if i == 1 and j == i or m then
+			e = e
+		else
+			if not fs.exists("/bin/"..e) then
+				e = cPath..e
+			end
+		end
+		
+		
+		local i, j = string.find(e, "//")
+		if i == 1 and j == 2 and not corruptPath then
+			corruptPath = true
+			corruptMessage = "Invalid path."
+		end
+		
+		if not corruptPath then
+			if fs.exists(e) and #e > 0 and not m then
+				if bg == false then
+					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--local f, err = loadfile(e)
+					if not f then
+						printError(err)
+					else
+						--f(unpack(args))
+						foreground[f.uid] = true
+						tasks = f.next
+					end
+				elseif bg == true then
+					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						f['background'] = true
+						
+						tasks = f.next
+					end
+				end
+			elseif fs.exists(e) == false and fs.exists("/bin/"..e) and #e > 0 and not m then
+				if bg == false then
+					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						foreground[f.uid] = true
+						tasks = f.next
+					end
+				elseif bg == true then
+					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					if not f then
+						printError(err)
+					else
+						f['background'] = true
+						
+						tasks = f.next
+					end
+				end
+			elseif m then
+				if e == "kill" then
+					if #args ~= 1 then
+						print("Usage: kill <UID>")
+					else
+						kill(args[1])
+					end
+				elseif e == "service" then
+					if #args ~= 2 then
+						print("Usage: service <start|stop|enable|disable> <name/path> [args]")
+					else
+						sv(args[1], args[2])
+					end
+				end
+			elseif fs.exists(e) == false and #e > 0 then
+				print("Command not found.")
+			end
+		else
+			printError(corruptMessage)
+		end
+	end
+end
+
+
+
+--[[local self = {}
+self.main = false
+self.lastx, self.lasty = 1, 1
+self.uid = 1
+self.task = cmd
+self.thread = coroutine.create(self.task)
+self.file = "CommandLine"
+self.filter = nil
+self.error = nil
+self.dead = false
+self.status = "suspended"
+self.queue = {}
+self.resume = function(...)
+		
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				--local o = term.current()
+				--self.window.redraw()
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return false
+		end
+		--end
+	end
+started[1] = self
+self.next = started
+tasks = self.next]]
+
+--[[local self = {}
+self.main = false
+self.lastx, self.lasty = 1, 1
+self.uid = 2
+self.task = rednet.run
+self.thread = coroutine.create(self.task)
+self.file = "RedNet"
+self.background = true
+self.filter = nil
+self.error = nil
+self.dead = false
+self.status = "suspended"
+self.queue = {}
+self.resume = function(...)
+		
+		local fst = {...}
+		--if self.filter == nil or fst[1] == self.filter then
+		if not self.dead then
+			if self.window ~= nil then
+				term.redirect(self.window)
+				--term.setCursorPos(self.lastx, self.lasty)
+			elseif mainwindow then
+				--mainwindow.redraw()
+				--self.lastx, self.lasty = mainwindow.getCursorPos()
+				--self.lastx = lastx
+				--self.lasty = lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(self.lastx, self.lasty)
+			end
+			--term.restoreCursor()
+			ok, err = coroutine.resume(self.thread, unpack(fst))
+			self.lastx, self.lasty = term.getCursorPos()
+			if self.main == true then
+				lastx = self.lastx
+				lasty = self.lasty
+			end
+			if mainwindow and self.main == false then
+				lastx = self.lastx
+				lasty = self.lasty
+				term.redirect(mainwindow)
+				--term.setCursorPos(lastx, lasty)
+			end
+			if ok then
+				self.filter = err
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			else
+				self.status = coroutine.status(self.thread)
+				if self.status == "dead" then self.dead = true end
+				return ok, err
+			end
+		else
+			return false
+		end
+		--end
+	end
+started[2] = self
+self.next = started
+tasks = self.next]]
+
+
+local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1)
+if not n then
+	printError(err)
+end
+tasks = n.next
+--[[local n, err = thread.new(rednet.run)
+if not n then
+	printError(err)
+end
+tasks = n.next]]
+
+local ok, err = pcall(thread.runAll, tasks)
+if not ok then
+	print(err)
+end
+	--[[parallel.waitForAll(
+		function()
+			thread.runAll(tasks)
+		end, 
+		function()
+			cmd()
+		end)]]
+
+
+
