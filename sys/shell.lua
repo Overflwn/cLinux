@@ -87,10 +87,10 @@ function shell.setPath()
 	return nil
 end
 function shell.resolve(p)
-	if fs.exists(curPath..p) then
-		return curPath..p
+	if string.find(p, "/", 1, 1) then
+		return p
 	else
-		return nil
+		return curPath.."/"..p
 	end
 end
 function shell.resolveProgram(p)

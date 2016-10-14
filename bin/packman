@@ -1,3 +1,18 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/packman
+	CATEGORY:    Binary
+	SET:         Extra Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program manages repositories and their programs
+		
+	All credits to lyqyd.
+]]--
+
+
 if lib.perm.permission.check("/bin") == "x" then
 	printError("User is not root, aborting...")
 	return

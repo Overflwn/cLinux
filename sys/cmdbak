@@ -42,7 +42,7 @@ function sThread.getStatus(tasklist, uid)
 end
 
 
-function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) --fg is a boolean if the process should show term drawing
+function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs, name) --fg is a boolean if the process should show term drawing
 	if fg == nil then
 		fg = true
 	end
@@ -98,12 +98,13 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 	
-	if type(file) == "string" then
-		self.task, err = loadfile(file)
+	--[[if type(file) == "string" then
+		
+		_, self.task, err = pcall(loadfile, file)
 		if not self.task then
 			return false, err
-		end
-	elseif type(file) == "function" then
+		end]]
+	if type(file) == "function" then
 		self.task = file
 	else
 		return false, "function expected, got "..type(file)
@@ -112,7 +113,7 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 	
 	setfenv(self.task, self.env)
 	self.thread = coroutine.create(self.task)
-	self.file = tostring(file)
+	self.file = name
 	self.filter = nil
 	self.error = nil
 	self.dead = false
@@ -1046,42 +1047,95 @@ local function cmd()
 		if not corruptPath then
 			if fs.exists(e) and #e > 0 and not m then
 				if bg == false then
-					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
-					--local f, err = loadfile(e)
+					local f, err = loadfile(e)
 					if not f then
 						printError(err)
 					else
 						--f(unpack(args))
-						foreground[f.uid] = true
-						tasks = f.next
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							foreground[f.uid] = true
+							tasks = f.next
+						else
+							printError(err)
+						end
 					end
 				elseif bg == true then
-					local f, err = thread.new(e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					local f, err = loadfile(e)
 					if not f then
 						printError(err)
 					else
-						f['background'] = true
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							f['background'] = true
 						
-						tasks = f.next
+							tasks = f.next
+						else
+							printError(err)
+						end
 					end
 				end
-			elseif fs.exists(e) == false and fs.exists("/bin/"..e) and #e > 0 and not m then
+			elseif fs.exists(shell.dir().."/"..e) and #e > 0 and not m then
 				if bg == false then
-					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					local f, err = loadfile(shell.dir().."/"..e)
 					if not f then
 						printError(err)
 					else
-						foreground[f.uid] = true
-						tasks = f.next
+						--f(unpack(args))
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							foreground[f.uid] = true
+							tasks = f.next
+						else
+							printError(err)
+						end
 					end
 				elseif bg == true then
-					local f, err = thread.new("/bin/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					local f, err = loadfile(shell.dir().."/"..e)
 					if not f then
 						printError(err)
 					else
-						f['background'] = true
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							f['background'] = true
 						
-						tasks = f.next
+							tasks = f.next
+						else
+							printError(err)
+						end
+					end
+				end
+			elseif fs.exists("/bin/"..e) and #e > 0 and not m then
+				if bg == false then
+					local f, err = loadfile("/bin/"..e)
+					if not f then
+						printError(err)
+					else
+						--f(unpack(args))
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							foreground[f.uid] = true
+							tasks = f.next
+						else
+							printError(err)
+						end
+					end
+				elseif bg == true then
+					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					local f, err = loadfile("/bin/"..e)
+					if not f then
+						printError(err)
+					else
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						if f then
+							f['background'] = true
+						
+							tasks = f.next
+						else
+							printError(err)
+						end
 					end
 				end
 			elseif m then
