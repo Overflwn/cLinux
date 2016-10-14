@@ -51,15 +51,30 @@ function usrs.getList()
 	return inhalt
 end
 
+local function setUsr(n, p)
+	name = n
+	password = p
+end
+
 function usrs.addUser(name, pw)
 	if _users[name] or name == "root" then return false end
+	local i = usrs.getList()
+	local oldname = name
+	local oldpw = password
+	if #i < 1 then
+		local n = "root"
+		local file = fs.open("/sys/.rootpw", "r")
+		local p = file.readLine()
+		file.close()
+		setUsr(n, p)
+	end
 	pw = hashPw(pw, name)
-	print(type(_users))
 	_users[name] = pw
 	local file = old.fs.open("/sys/usrData", "w")
 	file.write(textutils.serialize(_users))
 	file.close()
 	old.fs.makeDir("/home/"..name)
+	setUsr(oldname, oldpw)
 	return true
 end
 
