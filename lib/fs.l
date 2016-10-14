@@ -13,7 +13,7 @@
 local old = {}
 old['fs'] = fs
 local _fs = {}
-local forbidden = {"/boot", "/vit", "/bin"}
+local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 
 
 function _fs.scanFs(p)
@@ -86,14 +86,17 @@ function _fs.makeDir(p)
 end
 
 function _fs.open(p, mode)
-	if mode == "w" or mode == "a" then
+	if string.find(p, "/rom/", 1, 5) or string.find(p, "rom/", 1, 4) then
+		return nil
+	end
+	if mode == "w" or mode == "a" or mode == "bw" then
 		local ok = lib.perm.permission.check(p)
 		if ok ~= "w" then
 			return nil
 		elseif ok == "w" then
 			return old.fs.open(p, mode)
 		end
-	elseif mode == "r" then
+	elseif mode == "r" or mode == "br" then
 		return old.fs.open(p, mode)
 	end
 end

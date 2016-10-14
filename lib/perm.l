@@ -15,7 +15,7 @@
 local old = {}
 old['fs'] = fs
 local sha = os.loadAPI("/lib/sha.l")
-local forbidden = {"/vit", "/boot", "/bin"}
+local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 local perm = {}
 local name = ""
 local password = ""
