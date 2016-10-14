@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package = {}
 
 
@@ -918,6 +919,12 @@ end
 local versionNumber = 1.3
 local unpack = unpack or table.unpack
 
+=======
+local versionNumber = 1.3
+local unpack = unpack or table.unpack
+
+os.unloadAPI("package")
+>>>>>>> master
 
 local args = {...}
 
@@ -1020,9 +1027,15 @@ local function loadPackageAPI()
 	if package then
 		resetScreen()
 		io.write("Loading database...\n")
+<<<<<<< HEAD
 		installRoot = target
 
 		local co = coroutine.create(load)
+=======
+		package.installRoot = target
+
+		local co = coroutine.create(package.load)
+>>>>>>> master
 		local event, filter, passback = {}
 		while true do
 			if (filter and (filter == event[1] or event[1] == "terminate")) or not filter then
@@ -1056,7 +1069,11 @@ local categorySorted = {}
 if fetch then
 	local queue
 	if package and not pack then
+<<<<<<< HEAD
 		queue = newTransactionQueue("main/packman")
+=======
+		queue = package.newTransactionQueue("main/packman")
+>>>>>>> master
 	end
 	io.write("Updating packman\n")
 	local remoteHandle = http.get("https://raw.github.com/Piorjade/cLinux/master/bin/packman")
@@ -1102,7 +1119,11 @@ if fetch then
 		printWarning("Could not retrieve remote file.")
 	end
 	io.write("Fetching Repository List\n")
+<<<<<<< HEAD
 	remoteHandle = http.get("https://raw.githubusercontent.com/Piorjade/cLinux/master/etc/repolist")
+=======
+	remoteHandle = http.get("https://raw.github.com/Piorjade/cLinux/master/etc/")
+>>>>>>> master
 	if remoteHandle then
 		if pack then
 			pack.makeDir("/etc")
@@ -1178,7 +1199,11 @@ if fetch then
 end
 
 if #mode > 0 then
+<<<<<<< HEAD
 	for n, v in pairs(list) do
+=======
+	for n, v in pairs(package.list) do
+>>>>>>> master
 		if v.category then
 			for category in pairs(v.category) do
 				if not categoryList[category] then
@@ -1194,11 +1219,19 @@ if #mode > 0 then
 
 	local badPackages = {}
 	--flesh out dependencies
+<<<<<<< HEAD
 	for pName, pData in pairs(list) do
 		if pData.dependencies then
 			dependencies, errmsg = findDependencies(pName, {})
 			if not dependencies then
 				--if dependencies could not be resolved, remove the 
+=======
+	for pName, pData in pairs(package.list) do
+		if pData.dependencies then
+			dependencies, errmsg = package.findDependencies(pName, {})
+			if not dependencies then
+				--if dependencies could not be resolved, remove the package.
+>>>>>>> master
 				printWarning("Could not resolve dependency on "..errmsg.." in package "..pName)
 				table.insert(badPackages, pName)
 			else
@@ -1208,10 +1241,17 @@ if #mode > 0 then
 	end
 	--actual package removal and short-name lookup cleanup.
 	for _, pack in pairs(badPackages) do
+<<<<<<< HEAD
 		local entry = list[pack]
 		local name = entry.name
 		local others, key = false
 		for k, v in pairs(list[name]) do
+=======
+		local entry = package.list[pack]
+		local name = entry.name
+		local others, key = false
+		for k, v in pairs(package.list[name]) do
+>>>>>>> master
 			if v == entry then
 				key = k
 			else
@@ -1219,26 +1259,45 @@ if #mode > 0 then
 			end
 		end
 		if others then
+<<<<<<< HEAD
 			list[name][key] = nil
 		else
 			list[name] = nil
 		end
 		list[pack] = nil
+=======
+			package.list[name][key] = nil
+		else
+			package.list[name] = nil
+		end
+		package.list[pack] = nil
+>>>>>>> master
 	end
 end
 
 local function lookupPackage(name, installedOnly)
+<<<<<<< HEAD
 	if list[name] and not list[name].dependencies then
 		local options = {}
 		if installedOnly and installed[name] then
 			for name, pack in pairs(installed[name]) do
+=======
+	if package.list[name] and not package.list[name].dependencies then
+		local options = {}
+		if installedOnly and package.installed[name] then
+			for name, pack in pairs(package.installed[name]) do
+>>>>>>> master
 				table.insert(options, name)
 			end
 		elseif installedOnly then
 			--using installedOnly, but no packages of that name are installed.
 			return false
 		else
+<<<<<<< HEAD
 			for name, pack in pairs(list[name]) do
+=======
+			for name, pack in pairs(package.list[name]) do
+>>>>>>> master
 				table.insert(options, name)
 			end
 		end
@@ -1258,7 +1317,11 @@ local function lookupPackage(name, installedOnly)
 		else
 			return false
 		end
+<<<<<<< HEAD
 	elseif list[name] then
+=======
+	elseif package.list[name] then
+>>>>>>> master
 		--since it must have a dependencies table, the name is already fully unique.
 		return name
 	else
@@ -1267,7 +1330,11 @@ local function lookupPackage(name, installedOnly)
 end
 
 local function raw_package_operation(name, funcName)
+<<<<<<< HEAD
 	local pack = list[name]
+=======
+	local pack = package.list[name]
+>>>>>>> master
 	if not pack then return nil, "No such package" end
 	local co = coroutine.create(function() return pack[funcName](pack, getfenv()) end)
 	local event, filter, passback = {}
@@ -1314,8 +1381,13 @@ if mode == "install" then
 			if not result then
 				printWarning("Could not install package "..packageName..".")
 			else
+<<<<<<< HEAD
 				for k,v in pairs(list[result].dependencies) do
 					if not installed[k] then
+=======
+				for k,v in pairs(package.list[result].dependencies) do
+					if not package.installed[k] then
+>>>>>>> master
 						installList[k] = true
 					else
 						if k == result then
@@ -1358,12 +1430,21 @@ elseif mode == "update" then
 			end
 		end
 	else
+<<<<<<< HEAD
 		for k, v in pairs(installed) do
 			if v.files then
 				--filters out the disambiguation entries.
 				table.insert(updateList, k)
 				for name, info in pairs(list[k].dependencies) do
 					if not installed[name] then
+=======
+		for k, v in pairs(package.installed) do
+			if v.files then
+				--filters out the disambiguation entries.
+				table.insert(updateList, k)
+				for name, info in pairs(package.list[k].dependencies) do
+					if not package.installed[name] then
+>>>>>>> master
 						installList[name] = true
 					end
 				end
@@ -1376,7 +1457,11 @@ elseif mode == "update" then
 	end
 	if not forced then
 		for i = #updateList, 1, -1 do
+<<<<<<< HEAD
 			if installed[updateList[i]].version == list[updateList[i]].version then
+=======
+			if package.installed[updateList[i]].version == package.list[updateList[i]].version then
+>>>>>>> master
 				table.remove(updateList, i)
 			end
 		end
@@ -1429,10 +1514,17 @@ elseif mode == "remove" then
 		end
 		dependeesList = {}
 		--find packages which depend on the packages we are removing.
+<<<<<<< HEAD
 		for pName, pData in pairs(installed) do
 			if pData.version then
 				if not packageList[pName] then
 					for dName in pairs(list[pName].dependencies) do
+=======
+		for pName, pData in pairs(package.installed) do
+			if pData.version then
+				if not packageList[pName] then
+					for dName in pairs(package.list[pName].dependencies) do
+>>>>>>> master
 						for _, packName in pairs(packageList) do
 							if packName == dName then
 								dependeesList[pName] = true
@@ -1488,7 +1580,11 @@ elseif mode == "list" then
 		--list with matching.
 		match = operation.arguments[1]
 	end
+<<<<<<< HEAD
 	for name, info in pairs(installed) do
+=======
+	for name, info in pairs(package.installed) do
+>>>>>>> master
 		if info.version then
 			if string.match(name, match) then
 				io.write(name.." "..info.version.."\n")
@@ -1502,6 +1598,7 @@ elseif mode == "search" then
 		--search using a match
 		match = operation.arguments[1]
 	end
+<<<<<<< HEAD
 	for name, info in pairs(list) do
 		if info.version then
 			if string.match(name, match) then
@@ -1510,3 +1607,13 @@ elseif mode == "search" then
 		end
 	end
 end
+=======
+	for name, info in pairs(package.list) do
+		if info.version then
+			if string.match(name, match) then
+				io.write((package.installed[name] and "I " or "A " )..name.." "..info.version.."\n")
+			end
+		end
+	end
+end
+>>>>>>> master

@@ -671,7 +671,7 @@ function new(name, repo)
 		category = {},
 		dependencies = {},
 		--installation folder target
-		target = "/usr/bin",
+		target = "/bin",
 		setup = nil,
 		remove = nil,
 		download = {}
@@ -699,7 +699,7 @@ function findDependencies(packageName, _dependencyTable)
 	return dependencyTable
 end
 
-if not fs.exists("/usr/bin") then fs.makeDir("/usr/bin") end
+if not fs.exists("/bin") then fs.makeDir("/bin") end
 --process package list
 local function addPacks(file)
 	local packName = fs.getName(file)
@@ -726,7 +726,7 @@ local function addPacks(file)
 			if property == "name" and state == "" then
 				if state == "" then
 					entryTable = new(string.lower(value), packName)
-					entryTable.target = "/usr/bin"
+					entryTable.target = "/bin"
 					state = "main"
 				else
 					if state ~= "dirty" then

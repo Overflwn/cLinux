@@ -127,7 +127,13 @@ function shell.programs(hidden)
 		return a
 	end
 end
+<<<<<<< HEAD
 
+=======
+function shell.getRunningProgram()
+	return shell.dir()
+end
+>>>>>>> master
 function shell.openTag()
 	return nil
 end
