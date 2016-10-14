@@ -56,20 +56,32 @@ function _fs.getPrefix(a)
 end
 
 function _fs.makeDir(p)
+	local i, j = string.find(p, "[..]/")
+	
+	if i then
+		return "error"
+	end
+	
+	local i, j = string.find(p, "//")
+	
+	if i then
+		return	"error"
+	end
+	
 	local i, j = string.find(p, "/")
 	if i == 1 and j == i then
 		p = p
 	else
-		p = getCurPath()
+		local cPath = shell.dir()
+		p = cPath.."/"..p
 	end
-	
 	local wx = lib.perm.permission.check(p)
 	if wx == "w" then
-		old.fs.makeDir(p)
+		return old.fs.makeDir(p)
 	elseif wx == "x" then
 		return "noPermission"
 	else
-		return
+		return	"error"
 	end
 end
 
@@ -112,7 +124,7 @@ function _fs.move(from, to)
 	if m == "w" then
 		local m = lib.perm.permission.check(to)
 		if m == "w" then
-			old.fs.move(from, to)
+			return old.fs.move(from, to)
 		else
 			return "noPermission"
 		end
@@ -124,7 +136,7 @@ end
 function _fs.copy(from, to)
 	local m = lib.perm.permission.check(to)
 	if m == "w" then
-		old.fs.copy(from, to)
+		return old.fs.copy(from, to)
 	else
 		return "noPermission"
 	end
@@ -133,9 +145,11 @@ end
 function _fs.delete(p)
 	local m = lib.perm.permission.check(p)
 	if m == "w" then
-		old.fs.delete(p)
-	else
+		return old.fs.delete(p)
+	elseif m == "x" then
 		return "noPermission"
+	else
+		
 	end
 end
 

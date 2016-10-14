@@ -1,5 +1,0 @@
-local test = lib.perm.usrs.getList()
-
-for _, a in ipairs(test) do
-	print(a)
-end

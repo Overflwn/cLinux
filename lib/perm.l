@@ -19,6 +19,8 @@ local forbidden = {"/vit", "/boot", "/bin"}
 local perm = {}
 local name = ""
 local password = ""
+local oldname = ""
+local oldpassword = password
 local _users = nil
 
 if _users == nil then
@@ -122,14 +124,21 @@ end
 local permission = {}
 
 function permission.check(f)
+	if folder == f and name ~= "root" then return "x" end	--Not finished
+	local found = false
 	for each, folder in ipairs(forbidden) do
-		if folder == f and name ~= "root" then return "x" end	--Not finished
 		local i, j = string.find(f, folder)
 		if i == 1 and name ~= "root" then
-			return "x"
+			found = true
+			break
 		else
-			return "w"
+			found = false
 		end
+	end
+	if found then
+		return "x"
+	else
+		return "w"
 	end
 	return nil
 end
@@ -155,6 +164,8 @@ function permission.login(n, p)
 		local rpw = file.readLine()
 		file.close()
 		if p == rpw then
+			oldname = name
+			oldpassword = password
 			name = "root"
 			password = p
 			return true
@@ -163,6 +174,16 @@ function permission.login(n, p)
 		end
 	elseif inhalt[n] == nil then
 		return nil
+	end
+end
+
+function permission.reLog()
+	if oldname then
+		name = oldname
+		password = oldpassword
+		return true
+	else
+		return false
 	end
 end
 

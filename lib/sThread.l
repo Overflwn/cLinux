@@ -91,7 +91,7 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, args) -
 	end
 	setfenv(self.task, self.env)
 	self.thread = coroutine.create(self.task)
-	self.file = file
+	self.file = tostring(file)
 	self.filter = nil
 	self.error = nil
 	self.dead = false
@@ -169,7 +169,6 @@ end
 function sThread.kill(process)
 	process.dead = true
 	process.status = "dead"
-	sThread.queue(process, "sig:terminate", {})
 end
 
 function sThread.killAll(tasklist)

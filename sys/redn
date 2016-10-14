@@ -3,7 +3,7 @@ while true do
 	local id, msg = rednet.receive()
 	if id then
 		local file = fs.open("/testt", "w")
-		file.write("Hallo")
+		file.write(msg)
 		file.close()
 	end
 end

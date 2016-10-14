@@ -30,6 +30,13 @@ function serv.update()
 			list[a] = false
 		end
 	end
+	for _, a in pairs(list) do
+		if fs.exists(_) or fs.exists("/etc/services.d/".._) then
+		
+		else
+			list[_] = nil
+		end
+	end
 	local file = fs.open("/etc/services.conf", "w")
 	file.write(textutils.serialize(list))
 	file.close()
@@ -64,7 +71,7 @@ end
 
 
 function serv.set(k, bool)
-	if type(bool) ~= "boolean" then return false, "boolean exptected" end
+	if type(bool) ~= "boolean" and bool ~= "core" then return false, "boolean exptected" end
 	serv.update()
 	if list[k] or fs.exists(k) then
 		list[k] = bool

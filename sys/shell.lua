@@ -22,6 +22,7 @@ else
 end]]
 local tasks = {}
 local curPath = "/"
+local maintask = 0
 thread = sThread
 term.setCursorPos(1,1)
 term.setBackgroundColor(colors.blue)
@@ -47,7 +48,7 @@ function shell.run(path, ...)
 	end
 	local env = {}
 	_copy(_G, env)
-	blacklist = {'rawget', 'rawset', 'dofile', 'thread', 'sThread'}	--things that shouldn't get added, and extras
+	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do env[v] = nil end
 	return os.run(env, path, unpack(tArgs))
 end
@@ -110,12 +111,16 @@ function shell.clearAlias()
 end
 function shell.programs(hidden)
 	local a = fs.list("/bin/")
+	local x = fs.list(shell.dir())
+	for _, b in ipairs(x) do
+		table.insert(a, b)
+	end
 	if hidden then
 		return a
 	else
 		for _, b in ipairs(a) do
-			local i, j = string.find(b, ".")
-			if i == 1 then
+			local i = string.sub(b, 1, 1)
+			if i == "." then
 				table.remove(a, _)
 			end
 		end
@@ -131,7 +136,7 @@ end
 function shell.switchTab()
 	return nil
 end
-function shell.complete(s)
+--[[function shell.complete(s)
 	local a = fs.list("/bin/")
 	local c = {}
 	for _, b in ipairs(a) do
@@ -141,16 +146,111 @@ function shell.complete(s)
 		end
 	end
 	return c
+end]]
+local function tokenise( ... )
+    local sLine = table.concat( { ... }, " " )
+	local tWords = {}
+    local bQuoted = false
+    for match in string.gmatch( sLine .. "\"", "(.-)\"" ) do
+        if bQuoted then
+            table.insert( tWords, match )
+        else
+            for m in string.gmatch( match, "[^ \t]+" ) do
+                table.insert( tWords, m )
+            end
+        end
+        bQuoted = not bQuoted
+    end
+    return tWords
 end
-function shell.completeProgram(s)
+local tCompletionInfo = {}
+local function completeProgramArgument( sProgram, nArgument, sPart, tPreviousParts )
+    local tInfo = tCompletionInfo[ sProgram ]
+    if tInfo then
+        return tInfo.fnComplete( shell, nArgument, sPart, tPreviousParts )
+    end
+    return nil
+end
+local function completeProgram( sLine )
+	if #sLine > 0 and string.sub( sLine, 1, 1 ) == "/" then
+	    -- Add programs from the root
+	    return fs.complete( sLine, "", true, false )
+
+    else
+        local tResults = {}
+        local tSeen = {}
+
+        -- Add aliases
+
+        -- Add programs from the path
+        local tPrograms = shell.programs()
+        for n=1,#tPrograms do
+            local sProgram = tPrograms[n]
+            if #sProgram > #sLine and string.sub( sProgram, 1, #sLine ) == sLine then
+                local sResult = string.sub( sProgram, #sLine + 1 )
+                if not tSeen[ sResult ] then
+                    table.insert( tResults, sResult )
+                    tSeen[ sResult ] = true
+                end
+            end
+        end
+
+        -- Sort and return
+        table.sort( tResults )
+        return tResults
+    end
+end
+
+function shell.complete(sLine)
+	if #sLine > 0 then
+        local tWords = tokenise( sLine )
+        local nIndex = #tWords
+        if string.sub( sLine, #sLine, #sLine ) == " " then
+            nIndex = nIndex + 1
+        end
+        if nIndex == 1 then
+            local sBit = tWords[1] or ""
+            local sPath = shell.resolveProgram( sBit )
+            if tCompletionInfo[ sPath ] then
+                return { " " }
+            else
+                local tResults = completeProgram( sBit )
+                for n=1,#tResults do
+                    local sResult = tResults[n]
+                    local sPath = shell.resolveProgram( sBit .. sResult )
+                    if tCompletionInfo[ sPath ] then
+                        tResults[n] = sResult .. " "
+                    end
+                end
+                return tResults
+            end
+
+        elseif nIndex > 1 then
+            local sPath = shell.resolveProgram( tWords[1] )
+            local sPart = tWords[nIndex] or ""
+            local tPreviousParts = tWords
+            tPreviousParts[nIndex] = nil
+            return completeProgramArgument( sPath , nIndex - 1, sPart, tPreviousParts )
+
+        end
+    end
+	return nil
+end
+--[[function shell.completeProgram(s)
 	return shell.complete(s)
+end]]
+
+function shell.setCompletionFunction( sProgram, fnComplete )
+    tCompletionInfo[ sProgram ] = {
+        fnComplete = fnComplete
+    }
 end
-function shell.setCompletionFunction()
-	return nil
-end
+
 function shell.getCompletionInfo()
-	return nil
+	return tCompletionInfo
 end
+
+
 function shell.startServ(k, args)
 	local n, err = thread.new(k, nil, nil, nil, nil, nil, nil, nil, nil, args)
 	if not n then
@@ -160,8 +260,15 @@ function shell.startServ(k, args)
 		return true
 	end
 end
-function shell.getServ()
-	return tasks
+function shell.stopServ(name)
+
+	for _, a in ipairs(tasks) do
+		if a.file == tostring(name) then
+			thread.kill(a)
+			return true
+		end
+	end
+	return false
 end
 
 
@@ -216,6 +323,7 @@ for _, a in pairs(services) do
 			term.write("[SERVICE] ")
 			term.setTextColor(c)
 			print(_.." started as core.")
+			maintask = n.uid
 			tasks = n.next
 			sleep(0.5)
 		end
@@ -234,7 +342,7 @@ while true do
 	if ok ~= "noError" then
 		printError(err)
 	end
-	if #tasks < 1 then
+	if #tasks < 1 or tasks[maintask].dead then
 		flag.STATE_DEAD = true
 		break
 	end
