@@ -1,3 +1,0 @@
-local file = oldOpen("/test","w")
-file.write("Hello, I hacked.")
-file.close()

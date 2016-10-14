@@ -1,0 +1,22 @@
+-- Keep the TLCO alive
+-- Create a coroutine with alive, and execute the other.
+while true do
+	local ok, err = thread.getStatus(toplevel, 2)
+	if ok == "dead" or flag.STATE_DEAD or ok == nil then
+		term.setTextColor(colors.red)
+		print("/vit/alive : STATE_DEAD detected. Restarting...")
+		term.setCursorBlink(false)
+		sleep(2)
+		print("Trying to reboot")
+		os.reboot()
+	elseif flag.STATE_SHUTDOWN then
+		term.setTextColor(colors.red)
+		print("/vit/alive : Shutting down...")
+		term.setCursorBlink(false)
+		sleep(2)
+		print("Trying shutdown.")
+		os.shutdown()
+	else
+		sleep(0.1)
+	end
+end

@@ -1,0 +1,9 @@
+rednet.open("top")
+while true do
+	local id, msg = rednet.receive()
+	if id then
+		local file = fs.open("/testt", "w")
+		file.write(msg)
+		file.close()
+	end
+end
