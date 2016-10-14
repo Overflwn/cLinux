@@ -3,3 +3,4 @@
 /etc/api/package
 /etc/repolist
 etc/repositories/main
+etc/repositories/clinux

@@ -1,0 +1,8 @@
+name = edit
+	type = raw
+		url = https://raw.githubusercontent.com/Piorjade/cLinuxREPO/master/repo/edit
+		filename = edit
+	dependencies = none
+	version = 1.0
+	size = 17287
+end
