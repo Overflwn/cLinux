@@ -397,7 +397,7 @@ local function login()
 				term.write("Name: ")
 			end
 		until #tmpUsr > 0
-		term.write("Passoword: ")
+		term.write("Password: ")
 		repeat
 			tmpPw = readPw()
 			if #tmpPw < 1 then
@@ -408,6 +408,11 @@ local function login()
 		local ok = lib.perm.usrs.addUser(tmpUsr, tmpPw)
 		if ok then
 			print("Successfully created!")
+			term.setCursorPos(1,1)
+			term.setBackgroundColor(colors.black)
+			term.clear()
+			fs.makeDir("/home/root")
+			login()
 		else
 			print("Error...")
 			sleep(2)

@@ -236,9 +236,7 @@ function shell.complete(sLine)
     end
 	return nil
 end
---[[function shell.completeProgram(s)
-	return shell.complete(s)
-end]]
+
 
 function shell.setCompletionFunction( sProgram, fnComplete )
     tCompletionInfo[ sProgram ] = {
