@@ -1,0 +1,50 @@
+name = craftos-debian
+	type = pastebin
+		url = h4uwy8JK
+		filename = startup
+	target = /
+	category = os
+	version = 0.1
+	dependencies = none
+	size = 50
+end
+
+name = EPlog
+	type = pastebin
+		url = 5pbXtxhc
+		filename = log
+	category = easy program
+	version = 1.0
+	dependencies = none
+	size = 148
+end
+
+name = rc-slave
+	type = pastebin
+		url = t4NhXqPZ
+		filename = slave
+	category = utility
+	version = 1.0
+	dependencies = none
+	size = 276
+end
+
+name = rc-controller
+	type = pastebin
+		url = 2PMpyfWZ
+		filename = controller
+	category = utility
+	version = 1.0
+	dependencies = none
+	size = 169
+end
+
+name = github-get
+	type = pastebin
+		url = 3wkn9edV
+		filename = gh-get
+	category = utility
+	version = 1.0
+	dependencies = none
+	size=12
+end

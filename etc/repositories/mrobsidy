@@ -1,0 +1,9 @@
+name = ufsos
+    type = github
+        author = MrObsidy
+        repository = UFSOS
+    category = os
+    dependencies = lyqyd/packman lyqyd/netshell
+    target = /
+    version = 0.1
+end

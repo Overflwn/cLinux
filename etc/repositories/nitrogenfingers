@@ -1,0 +1,59 @@
+name = lsa
+	type = pastebin
+		url = fWDrjtvL
+		filename = lsa
+	category = system utility
+	version = 1.1
+	dependencies = none
+	size = 5424
+end
+
+name = wysiwrite
+	type = pastebin
+		url = 3MqtuS9P
+		filename = write
+	category = text editor
+	version = 0.6
+	dependencies = none
+	size = 69496
+end
+
+name = npaintpro
+	type = pastebin
+		url = pzWSRqNF
+		filename = npp
+	category = image editor
+	version = 1.2
+	dependencies = none
+	size = 144724
+end
+
+name = 3dprint
+	type = pastebin
+		url = tzw1Sw78
+		filename = 3dprint
+	category = turtle program
+	version = 0.9
+	dependencies = none
+	size = 4839
+end
+
+name = gameutils
+	type = pastebin
+		url = b5NXyw11
+		filename = gameutils
+	category = graphics api
+	version = 1.0
+	dependencies = none
+	size = 29404
+end
+
+name = solitaire
+	type = pastebin
+		url = wg6xLisV
+		filename = solitaire
+	category = game
+	version = 1.0
+	dependencies = none
+	size = 92801
+end

@@ -1,0 +1,29 @@
+name = leosat
+	type = pastebin
+		url = rjiYpE0r
+		filename = leosat
+	category = rednet networking gps
+	dependencies = none
+	version = 1.4
+	size = 4815
+end
+
+name = rednetconsole
+	type = pastebin
+		url = CFwBqJEv
+		filename = rednetconsole
+	category = rednet networking utility
+	dependencies = none
+	version = 1.0
+	size = 894
+end
+
+name = wakeonlan
+	type = raw
+		url = https://raw.githubusercontent.com/LeoVerto/cc-programs/master/wakeonlan.lua
+		filename = wakeonlan
+	category = networking utility
+	dependencies = none
+	version = 1.1
+	size = 738
+end

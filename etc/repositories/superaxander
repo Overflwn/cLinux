@@ -1,0 +1,30 @@
+name = cat
+	type = raw
+		url = http://pastebin.com/raw.php?i=yQM4uUcs
+		filename = cat
+	category = utilities
+	dependencies = none
+	target = /usr/bin
+	version = 0.1
+	size = 384
+end
+name = wget
+	type = raw
+		url = http://pastebin.com/raw.php?i=Uek1KrbT
+		filename = wget
+	category = utilities
+	dependencies = none
+	target = /usr/bin
+	version = 0.2
+	size = 719
+end
+name = less
+	type = raw
+		url = http://pastebin.com/raw.php?i=JqFpGec7
+		filename = less
+	category = utilities
+	dependencies = none
+	target = /usr/bin
+	version = 0.1
+	size = 235
+end

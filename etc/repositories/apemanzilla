@@ -1,0 +1,24 @@
+#Needs to be rewritten to be more portable
+#name = utils
+#	type = raw
+#		url = https://raw.githubusercontent.com/apemanzilla/repo/master/apis/utils.lua
+#		filename = utils
+#	category = api
+#	dependencies = none
+#	target = /usr/apis
+#	setup = utils install
+#	cleanup = utils remove
+#	version = 1.02
+#	size = 2636
+#end
+
+name = quickreboot
+	type = raw
+		url = https://raw.githubusercontent.com/apemanzilla/repo/master/apis/quickreboot.lua
+		filename = qr
+	category = utility
+	dependencies = none
+	target = /usr/bin
+	version = 1.0
+	size = 50
+end

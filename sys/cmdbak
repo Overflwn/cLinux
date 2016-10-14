@@ -89,12 +89,9 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs) 
 			b[k] = v
 		end
 		b['thread'] = thread
-<<<<<<< HEAD
 		b['shell']['getRunningProgram'] = function()
 			return tostring(self.file)
 		end
-=======
->>>>>>> master
 	end
 	self.env = {}
 	_copy(_G, self.env)
@@ -261,10 +258,7 @@ function sThread.runAll(tasklist)
 					last_uid = #tasklist
 						
 				elseif foreground[uid] then
-<<<<<<< HEAD
 					
-=======
->>>>>>> master
 					ok, err = task.resume(unpack(evt))
 					if ok == nil or ok == true then
 						if task.dead then
