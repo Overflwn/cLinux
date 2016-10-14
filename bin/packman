@@ -1122,7 +1122,7 @@ if fetch then
 		printWarning("Could not retrieve remote file.")
 	end
 	io.write("Fetching Repository List\n")
-	remoteHandle = http.get("https://raw.githubusercontent.com/Piorjade/cLinux/master/etc/repolist")
+	remoteHandle = http.get("http://pastebin.com/raw/m8wdq6Vn")
 	if remoteHandle then
 		if pack then
 			pack.makeDir("/etc")
