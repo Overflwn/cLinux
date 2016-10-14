@@ -1,5 +1,0 @@
-local tArgs = {...}
-
-for _, a in ipairs(tArgs) do
-	print(a)
-end

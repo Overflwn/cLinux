@@ -6,20 +6,11 @@
 {
 	list = {				--This contains the paths to every image you want to boot. (they need to be in /boot/)
 		"clinux.i",
-		"test1",
-		"load",
-		"test2",
-		"test3",
-		"1",
-		"2",
-		"3",
-		"4",
-		"5",
-		"6"
+		"CraftOS",
 	},
 	command = {			--The default command, which the command is booted with (Please in same order as above)
 		"",
-		"test",
+		"",
 	},
 	default = 1
 }
