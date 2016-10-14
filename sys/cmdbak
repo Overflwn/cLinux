@@ -904,9 +904,11 @@ local function cmd()
 		local i, j = string.find(e, "sudo ")
 		if i == 1 then
 			e = string.sub(e, 6)
-			sd()
-			if e == nil then
-				e = ""
+			if fs.exists(e) or fs.exists(shell.dir().."/"..e) or fs.exists("/bin/"..e) then
+				sd()
+				if e == nil then
+					e = ""
+				end
 			end
 		end
 		
@@ -968,7 +970,11 @@ local function cmd()
 			if ok then
 				print("Success!")
 			elseif ok == false then
-				print("No root")
+				if t > 1 then
+					print("No root")
+				else
+					print("You can't kill that.")
+				end
 			elseif ok == nil then
 				print("Error")
 			end
@@ -1052,7 +1058,7 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
 						if f then
 							foreground[f.uid] = true
 							tasks = f.next
@@ -1066,7 +1072,7 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
 						if f then
 							f['background'] = true
 						
@@ -1083,7 +1089,7 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
 						if f then
 							foreground[f.uid] = true
 							tasks = f.next
@@ -1097,7 +1103,7 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
 						if f then
 							f['background'] = true
 						
@@ -1114,7 +1120,7 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, "/bin/"..e)
 						if f then
 							foreground[f.uid] = true
 							tasks = f.next
@@ -1128,7 +1134,7 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args)
+						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, "/bin/"..e)
 						if f then
 							f['background'] = true
 						
@@ -1150,6 +1156,16 @@ local function cmd()
 						print("Usage: service <start|stop|enable|disable> <name/path> [args]")
 					else
 						sv(args[1], args[2])
+					end
+				end
+				
+				if sudo then
+					local ok, err = lib.perm.permission.reLog()
+					if not ok then
+						printError("There was an error with reLog.")
+						sudo = false
+					else
+						sudo = false
 					end
 				end
 			elseif fs.exists(e) == false and #e > 0 then
@@ -1287,7 +1303,7 @@ self.next = started
 tasks = self.next]]
 
 
-local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1)
+local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1, {}, "/sys/cmdbak")
 if not n then
 	printError(err)
 end
