@@ -60,5 +60,4 @@ You can even start a program as core service (for example useful for servers)
 
 service enable rednet
   
-#More Information in the forum post
-http://www.computercraft.info/forums2/index.php?/topic/27573-clinux-optional-desktop-enviroment-bye-craftos-kappa/
+#More Information in the [forum post](http://www.computercraft.info/forums2/index.php?/topic/27573-clinux-optional-desktop-enviroment-bye-craftos-kappa/).
