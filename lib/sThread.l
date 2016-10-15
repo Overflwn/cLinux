@@ -79,6 +79,9 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, args) -
 		for k, v in pairs(a) do
 			b[k] = v
 		end
+		for k, v in pairs(_G.lib) do
+			b['lib'][k] = v
+		end
 	end
 	self.env = {}
 	setmetatable(self.env, {__index = _G.lib})

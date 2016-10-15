@@ -74,9 +74,12 @@ function shell.run(path, ...)
 		for k, v in pairs(a) do
 			b[k] = v
 		end
+		for k, v in pairs(b['lib']) do
+			print(tostring(k))
+			b[k] = v
+		end
 	end
 	local env = {}
-	setmetatable(env, {__index = _G.lib})
 	_copy(_G, env)
 	blacklist = {'rawget', 'rawset', 'dofile', 'flag'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do env[v] = nil end

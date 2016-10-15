@@ -15,3 +15,12 @@ name = luaide
 	version = 1.0
 	size = 61948
 end
+
+name = doorX
+	type = raw
+		url = http://pastebin.com/raw/Rnp97GRT
+		filename = InstallDoorX
+	dependencies = none
+	version = 2.0
+	size = 4210
+end

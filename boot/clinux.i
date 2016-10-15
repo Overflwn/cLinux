@@ -306,7 +306,7 @@ function bos.loadAPI( _sPath )
         end
     end
     tAPIsLoading[sName] = nil
-    return true, _putLib(sName, tAPI)
+    return true, _putLib(sName, tAPI), _put(sName, tAPI)
 end
 
 

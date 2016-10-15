@@ -39,10 +39,14 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 		for k, v in pairs(a) do
 			b[k] = v
 		end
+		for k, v in pairs(b['lib']) do
+			b[k] = v
+		end
 	end
 	self.env = {}
-	_copy(_G, self.env)
 	setmetatable(self.env, {__index = _G.lib})
+	_copy(_G, self.env)
+
 	blacklist = {'rawget', 'rawset', 'dofile', 'old'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 
