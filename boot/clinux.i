@@ -10,7 +10,7 @@ function rednet.open( sModem )
 	if type( sModem ) ~= "string" then
 		error( "expected string", 2 )
 	end
-	if peripheral.getType( sModem ) ~= "modem" then	
+	if peripheral.getType( sModem ) ~= "modem" then
 		error( "No such modem: "..sModem, 2 )
 	end
 	peripheral.call( sModem, "open", os.getComputerID() )
@@ -223,7 +223,7 @@ function rednet.run()
 		error( "rednet is already running", 2 )
 	end
 	bRunning = true
-	
+
 	while bRunning do
 		local sEvent, p1, p2, p3, p4 = os.pullEventRaw()
 		if sEvent == "modem_message" then
@@ -268,6 +268,48 @@ end
 
 
 
+local bos = {}
+
+for k, v in pairs(_G.os) do
+	bos[k] = v
+end
+
+local tAPIsLoading = {}
+function bos.loadAPI( _sPath )
+    local sName = fs.getName( _sPath )
+    if tAPIsLoading[sName] == true then
+        printError( "API "..sName.." is already being loaded" )
+        return false
+    end
+    tAPIsLoading[sName] = true
+
+    local tEnv = {}
+    setmetatable( tEnv, { __index = _G } )
+    local fnAPI, err = loadfile( _sPath, tEnv )
+    if fnAPI then
+        local ok, err = pcall( fnAPI )
+        if not ok then
+            printError( err )
+            tAPIsLoading[sName] = nil
+            return false
+        end
+    else
+        printError( err )
+        tAPIsLoading[sName] = nil
+        return false
+    end
+
+    local tAPI = {}
+    for k,v in pairs( tEnv ) do
+        if k ~= "_ENV" then
+            tAPI[k] =  v
+        end
+    end
+    tAPIsLoading[sName] = nil
+    return true, _putLib(sName, tAPI)
+end
+
+
 --[[
 	cLinux : Lore of the Day!
 	Made by Piorjade, daelvn
@@ -276,7 +318,7 @@ end
 	CATEGORY:    boot
 	SET:         Boot I
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		This script is ran after /startup and
 		it sets flags manually, also loading
 		some utils for posterior scripts.
@@ -341,6 +383,7 @@ _put('_put', _put)
 _put('lib', lib)
 _put('_putLib', _putLib)
 _putLib('rednet', rednet)
+_putLib('os', bos)
 function _check(a)
 	if _G[a] == nil then
 		return false
@@ -388,12 +431,12 @@ _put('require', require)
 -- Set system flags
 --- Debug level, set to 0 by default, use /startup
 _flag('SYSDEBUG', 0)
--- Rescue shell mode, set to false by default
-_flag('RESCUE', false)
 -- Starting the OS, can't be changed
 _flag('STATE_INIT', true)
--- Starts DE / Windowmanager (located in /boot/X/xserv.i), use /startup
-_flag('startX', false)
+-- Ignore the current services.conf, for example to start the commandline
+_flag('text', false)
+
+
 
 _arg = {...}
 if #_arg > 0 then
@@ -401,9 +444,9 @@ if #_arg > 0 then
 		if arg == "sysdebug" then
 		    flag.SYSDEBUG = flag.SYSDEBUG + 1
 		elseif arg == "rescue" then
-			flag.RESCUE = true 
-		elseif arg == "startX" then
-			flag.startX = true
+			flag.RESCUE = true
+		elseif arg == "text" then
+			flag.text = true
 		end
 	end
 end
@@ -422,7 +465,7 @@ _G.printError = function()
 		local nextf, err = thread.new("/vit/alive", 2)
 		nextf, err = thread.new(lib.rednet.run, 3)
 		_G['toplevel'] = nextf.next
-		local ok, err = pcall(function () 
+		local ok, err = pcall(function ()
 			parallel.waitForAny(
 				function()
 					thread.runAll(nextf.next)

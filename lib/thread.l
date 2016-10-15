@@ -6,7 +6,7 @@
 	CATEGORY:    library
 	SET:         Core Libraries I
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		Manages the coroutines, used in
 		the TLCO.
 		(This gets replaced by shell-level thread later on)
@@ -42,9 +42,10 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 	end
 	self.env = {}
 	_copy(_G, self.env)
-	blacklist = {'rawget', 'rawset', 'dofile'}	--things that shouldn't get added, and extras
+	setmetatable(self.env, {__index = _G.lib})
+	blacklist = {'rawget', 'rawset', 'dofile', 'old'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
-	
+
 	if type(file) == "string" then
 		self.task, err = loadfile(file)
 		if not self.task then
@@ -55,8 +56,8 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 	else
 		return false, "function expected, got "..type(file)
 	end
-	
-	
+
+
 	--setfenv(self.task, self.env)
 	self.thread = coroutine.create(self.task)
 	self.file = file
@@ -69,7 +70,7 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 		local fst = {...}
 		--if self.filter == nil or fst[1] == self.filter then
 			ok, err = coroutine.resume(self.thread, unpack(fst))
-				
+
 			if ok then
 				self.filter = err
 				self.status = coroutine.status(self.thread)
@@ -90,7 +91,7 @@ function thread.queue(process, event, parameters)
 	process.queue[#process.queue+1] = {event = event, parameters = parameters}
 	return true
 end
- 
+
 function thread.kill(process)
 	process.dead = true
 	process.status = "dead"
@@ -111,7 +112,7 @@ function thread.runAll(tasklist)
 		for uid, task in ipairs(tasklist) do
 			if task.dead then
 				table.remove(tasklist, uid)
-			else 
+			else
 				ok, err = task.resume(unpack(evt))
 				if ok == nil or ok == true then
 				else

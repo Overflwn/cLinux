@@ -6,7 +6,7 @@
 	CATEGORY:    Library
 	SET:         Core Library
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		This script is manages things, that should be started after shell.
 		Services can be added and removed as root.
 		(Basically this is an autorun manager, for things like starting a window manager)
@@ -32,7 +32,7 @@ function serv.update()
 	end
 	for _, a in pairs(list) do
 		if fs.exists(_) or fs.exists("/etc/services.d/".._) then
-		
+
 		else
 			list[_] = nil
 		end
@@ -57,7 +57,7 @@ else
 			foundcore = true
 			break
 		else
-			foundcore = false 
+			foundcore = false
 		end
 	end
 	if not foundcore then
@@ -65,7 +65,7 @@ else
 	else
 		list = inhalt
 		serv.update()
-		
+
 	end
 end
 
@@ -73,7 +73,14 @@ end
 function serv.set(k, bool)
 	if type(bool) ~= "boolean" and bool ~= "core" then return false, "boolean exptected" end
 	serv.update()
-	if list[k] or fs.exists(k) then
+	if list[k] ~= nil or fs.exists(k) then
+		if bool == "core" then
+			for _, a in pairs(list) do
+				if a == "core" then
+					list[_] = false
+				end
+			end
+		end
 		list[k] = bool
 		serv.update()
 		return true

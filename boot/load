@@ -6,7 +6,7 @@
 	CATEGORY:    boot
 	SET:         Boot II
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		This script is ran after /boot/clinux.i
 		and loads important libraries up
 		and starts the shell at the end.
@@ -15,7 +15,8 @@
 --if flag.STATE_INIT ~= true or flag.STATE_INIT == nil then
 --end
 
-
+_G['old'] = {}
+_G.old['fs'] = fs
 
 if _G['flag'] and _G['flag']['STATE_INIT'] then
 	for _, a in ipairs(fs.list("/lib/")) do
@@ -26,7 +27,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.setTextColor(colors.red)
 			print("["..a.."] "..tostring(err))
 			term.setTextColor(c)
-			
+
 			flag.STATE_DEAD = true
 			break
 		else
@@ -37,6 +38,12 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			print(" "..a.." loaded!")
 			sleep(0.5)
 		end
+	end
+
+
+	if _G.lib.os then
+		_G.lib.os['shutdown'] = os.shutdown
+		_G.lib.os['reboot'] = os.reboot
 	end
 	local xBox = {}
 

@@ -7,13 +7,13 @@
 	NAME:        /lib/perm.l
 	CATEGORY:    Library
 	SET:         Core Library
-	VERSION:     01:alpha0
-	DESCRIPTION: 
-		This script is manages users and their permissions.
+	VERSION:     02:alpha3
+	DESCRIPTION:
+		This script manages users and their permissions.
 		Most of these functions are selfexplaining.
 ]]--
-local old = {}
-old['fs'] = fs
+
+
 local sha = os.loadAPI("/lib/sha.l")
 local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 local perm = {}
@@ -30,7 +30,7 @@ if _users == nil then
 	local inhalt = file.readAll()
 	_users = textutils.unserialize(inhalt)
 	file.close()
-	
+
 end
 
 function hashPw(p, salt)
@@ -44,7 +44,7 @@ local usrs = {}
 
 function usrs.getList()
 	local inhalt = {}
-	
+
 	for k, v in pairs(_users) do
 		table.insert(inhalt, k)
 	end
@@ -56,8 +56,8 @@ local function setUsr(n, p)
 	password = p
 end
 
-function usrs.addUser(name, pw)
-	if _users[name] or name == "root" then return false end
+function usrs.addUser(nm, pw)
+	if _users[nm] or nm == "root" or fs.exists("/home/"..nm) then return false, "exists" end
 	local i = usrs.getList()
 	local oldname = name
 	local oldpw = password
@@ -68,12 +68,12 @@ function usrs.addUser(name, pw)
 		file.close()
 		setUsr(n, p)
 	end
-	pw = hashPw(pw, name)
-	_users[name] = pw
+	pw = hashPw(pw, nm)
+	_users[nm] = pw
 	local file = old.fs.open("/sys/usrData", "w")
 	file.write(textutils.serialize(_users))
 	file.close()
-	old.fs.makeDir("/home/"..name)
+	old.fs.makeDir("/home/"..nm)
 	setUsr(oldname, oldpw)
 	return true
 end
@@ -109,7 +109,7 @@ function usrs.removeUser(name, rpw)
 end
 
 function usrs.changePw(name, oldPw, newPw)
-	if name == nil or oldPw == nil or newPw == nil then return nil end
+	if #name < 1 or #oldPw < 1 or #newPw < 1 then return nil end
 	if _users[name] and name ~= "root" then
 		local oldPw = hashPw(oldPw, name)
 		if oldPw == _users[name] then
@@ -118,8 +118,9 @@ function usrs.changePw(name, oldPw, newPw)
 			local file = old.fs.open("/sys/usrData", "w")
 			file.write(textutils.serialize(_users))
 			file.close()
+			return true
 		else
-			return false
+			return false, "Wrong password."
 		end
 	elseif name == "root" then
 		local oldPw = hashPw(oldPw, name)
@@ -129,10 +130,39 @@ function usrs.changePw(name, oldPw, newPw)
 			file.writeLine(newPw)
 			file.close()
 		else
-			return false
+			return false, "Wrong password."
 		end
 	else
-		return nil
+		return nil, "User does not exist."
+	end
+end
+
+function usrs.changeName(oldname, newname, pw)
+	if oldname and newname and pw then
+		if #oldname < 1 or #newname < 1 or #pw < 1 then return nil end
+		if fs.exists("/home/"..newname) or _users[newname] then return "exists" end
+		if _users[oldname] and oldname ~= "root" then
+			local ps = hashPw(pw, oldname)
+			if ps == _users[oldname] then
+				_users[newname] = hashPw(pw, newname)
+				_users[oldname] = nil
+				if fs.exists("/home/"..oldname) then
+					fs.move("/home/"..oldname, "/home/"..newname)
+				else
+					fs.makeDir("/home/"..newname)
+				end
+				local file = old.fs.open("/sys/usrData", "w")
+				file.write(textutils.serialize(_users))
+				file.close()
+				return true
+			else
+				return false, "Wrong Password"
+			end
+		elseif oldname == "root" then
+			return false, "Can't change root"
+		else
+			return nil, "User doesn't exist"
+		end
 	end
 end
 
@@ -161,7 +191,7 @@ end
 function permission.login(n, p)
 	if n == nil or p == nil then return nil end
 	p = hashPw(p, n)
-	
+
 	local file = old.fs.open("/sys/usrData", "r")
 	local inhalt = file.readAll()
 	file.close()

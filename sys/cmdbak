@@ -15,7 +15,7 @@
 	Resetting taskmanager on cmd level
 ]]
 
-
+--variables and tables
 sThread = {}
 tasksbg = {}
 tasks = {}
@@ -33,6 +33,17 @@ local lastx = 1
 local lasty = 1
 local foreground = {}
 local sudo = false
+
+
+--functions
+
+
+--[[
+							TASKMANAGER
+				(edited version of sThread.l)
+]]
+
+
 function sThread.getStatus(tasklist, uid)
 	if tasklist[uid] then
 		return tasklist[uid].status
@@ -188,7 +199,6 @@ function sThread.queue(process, event, parameters)
 	process.queue[#process.queue+1] = {event = event, parameters = parameters}
 	return true
 end
-
 
 function sThread.kill(uid)
 	if uid < 2 and not flag.STATE_SHUTDOWN or uid < 2 and not flag.STATE_RESTART then return false end
@@ -353,14 +363,20 @@ thread = sThread
 
 
 --[[
-	Resetting taskmanager on cmd level finished
+						TASKMANAGER FINISHED
 ]]
 
 
 
 
-
 function readPw()
+	--[[
+							Basically the read function,
+							without writing any character on the screen.
+
+							(like in a linux terminal)
+	]]
+
 	local str = ""
 	term.setCursorBlink(true)
 	repeat
@@ -379,18 +395,21 @@ _put('readPw', readPw)
 
 
 
-term.setCursorPos(1,1)
-term.setBackgroundColor(colors.black)
-term.clear()
 
 local function login()
+--[[
+						login and register script
+]]
+	--attempt to get the list of users, located in ("/sys/usrData")
 	local t = lib.perm.usrs.getList()
 	if #t < 1 then
+		--If the userlist is empty
 		print("Register a user.")
 		term.write("Name: ")
 		local tmpUsr = ""
 		local tmpPw = ""
 		repeat
+			--read input for username, repeat if nothing was entered or the user entered "root"
 			tmpUsr = read()
 			if tmpUsr == "root" then
 				print("Please use another name.")
@@ -404,6 +423,7 @@ local function login()
 		until #tmpUsr > 0
 		term.write("Password: ")
 		repeat
+			--read input for password, repeat if nothing was entered
 			tmpPw = readPw()
 			if #tmpPw < 1 then
 				print("Please enter a password.")
@@ -411,6 +431,7 @@ local function login()
 			end
 		until #tmpPw > 0
 		local ok = lib.perm.usrs.addUser(tmpUsr, tmpPw)
+		--attempt to create the user, restarts login script if something goes wrong
 		if ok then
 			print("Successfully created!")
 			term.setCursorPos(1,1)
@@ -424,11 +445,13 @@ local function login()
 			login()
 		end
 	elseif #t > 0 then
+		--If the userlist isn't empty
 		print("Login with an existing user.")
 		term.write("Name: ")
 		local tmpUsr = ""
 		local tmpPw = ""
 		repeat
+			--read input for username, repeat if nothing was entered
 			tmpUsr = read()
 			if #tmpUsr < 1 then
 				print("Please enter a name.")
@@ -437,6 +460,7 @@ local function login()
 		until #tmpUsr > 0
 		term.write("Password: ")
 		repeat
+			--read input for password, repeat if nothing was entered
 			tmpPw = readPw()
 			if #tmpPw < 1 then
 				print("Please enter a password.")
@@ -444,6 +468,7 @@ local function login()
 			end
 		until #tmpPw > 0
 		local ok = lib.perm.permission.login(tmpUsr, tmpPw)
+		--attempt to log in, prints error if the input is false or something goes wrong
 		if ok == false then
 			print("Oops, that didn't work, let's try again.")
 			login()
@@ -454,13 +479,14 @@ local function login()
 			login()
 		end
 	else
+		--if perm didn't return the list, it restarts the script
 		print("Error with userlist.")
 		sleep(2)
 		login()
 	end
 end
 
-login()
+
 
 local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read(), just to print the current user and path at the front
     term.setCursorBlink( true )
@@ -760,36 +786,52 @@ end
 
 local function cmd()
 
+--[[
+	Basically the whole terminal
+]]
 
 
 
 
-
-
+	--Get the name of the logged in user and set the directory
 	local cUser = lib.perm.permission.getCurrentUser()
 	shell.setDir("/home/"..cUser)
 	while true do
+		--start commandline loop
+
+		--get any error by a task and print it
 		local ok, err = thread.getError()
 		if ok ~= "noError" then
 			printError(err)
 		end
+
+		--Print the current user and the path (example: test@/bin> _ )
 		local cPath = shell.dir()
 		term.setTextColor(colors.yellow)
 		term.write(lib.perm.permission.getCurrentUser())
 		term.setTextColor(colors.lime)
 		term.write("@")
 		term.setTextColor(colors.blue)
+
+		--if the user is in his home directory, write ~ instead
 		local i, j = string.find(cPath, "/home/"..lib.perm.permission.getCurrentUser())
 		if i == 1 then
 			cPath = "~/"..string.sub(cPath, j+1)
 		end
 		term.write(cPath.."> ")
 		term.setTextColor(colors.white)
+
+		--Start reading the command
 		local e = readcmd( nil, {}, shell.complete )
+
+		--Start searching for 'sudo' and 'bg', also check if the user put false directories in
 		local corruptPath = false
 		local corruptMessage = ""
 		local bg = false
+
+
 		function sd()
+			--'sudo', ask for root password
 			term.write("Enter root password: ")
 			local p = readPw()
 			local ok = lib.perm.permission.login("root", p)
@@ -799,6 +841,8 @@ local function cmd()
 				sudo = true
 			end
 		end
+
+		--Search for 'sudo', if yes, start sd()
 		local i, j = string.find(e, "sudo ")
 		if i == 1 then
 			e = string.sub(e, 6)
@@ -815,6 +859,7 @@ local function cmd()
 			end
 		end
 
+		--Search for 'bg', if yes, remove 'bg ' from the input and set bg to true
 		local i, j = string.find(e, "bg ")
 		if i == 1 then
 			e = string.sub(e, 4)
@@ -824,6 +869,8 @@ local function cmd()
 			end
 		end
 
+
+		--filter out every argument after the command
 		local args = {}
 		local oe = e
 		local arg = ""
@@ -861,12 +908,15 @@ local function cmd()
 			until i == nil
 		end
 
+
+		--built-in commands
 		local maincommands = {
 			"kill",
 			"service",
 		}
 
 		function kill(uid)
+			--Function to kill a thread
 			local t = tonumber(uid)
 			local ok = thread.kill(t)
 
@@ -885,6 +935,7 @@ local function cmd()
 
 
 		function sv(...)
+			--service manager (start, stop, enable and disable services)
 			local tArgs = {...}
 			local jArgs = {}
 			for _, a in ipairs(tArgs) do
@@ -922,21 +973,30 @@ local function cmd()
 				else
 					print("Successfully disabled! You need to restart.")
 				end
+			elseif command == "core" then
+				local ok, err = lib.serv.set(p, "core")
+				if not ok then
+					printError(err)
+				else
+					print("Successfully set as core! You need to restart.")
+				end
 			else
 				print("Usage: service <start|stop|enable|disable> <name/path> [args]")
 			end
 		end
 
-		local m = false
 
+		--check if the user put a built-in command in
+		local m = false
 		for _, a in ipairs(maincommands) do
 			if a == e then
 				m = true
 				break
 			end
 		end
-		local cPath = shell.dir()
 
+		--Start checking for false directory input
+		local cPath = shell.dir()
 		local i, j = string.find(e, "/")
 		if i == 1 and j == i or m then
 			e = e
@@ -945,8 +1005,6 @@ local function cmd()
 				e = cPath.."/"..e
 			end
 		end
-
-
 		local i, j = string.find(e, "//")
 		if i then
 			corruptPath = true
@@ -963,16 +1021,20 @@ local function cmd()
 				corruptPath = true
 				corruptMessage = "Invalid path."
 			end
-			local i, j = string.find(a, "[..]")
+			local i, j = string.find(a, "[.][..]")
 			if i and #a > 2 then
 				corruptPath = true
 				corruptMessage = "Invalid path."
 			end
 		end
 
+
+		--Start executing commands
 		if not corruptPath then
 			if fs.exists(e) and #e > 0 and not m then
+				--if the user put a full path in and it exists
 				if bg == false then
+					--Start in foreground mode
 					local f, err = loadfile(e)
 					if not f then
 						printError(err)
@@ -987,7 +1049,7 @@ local function cmd()
 						end
 					end
 				elseif bg == true then
-					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--start in background mode
 					local f, err = loadfile(e)
 					if not f then
 						printError(err)
@@ -1003,7 +1065,9 @@ local function cmd()
 					end
 				end
 			elseif fs.exists(shell.dir().."/"..e) and #e > 0 and not m then
+				--if the file exists in the current directory
 				if bg == false then
+					--start in foreground mode
 					local f, err = loadfile(shell.dir().."/"..e)
 					if not f then
 						printError(err)
@@ -1018,7 +1082,7 @@ local function cmd()
 						end
 					end
 				elseif bg == true then
-					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--start in background mode
 					local f, err = loadfile(shell.dir().."/"..e)
 					if not f then
 						printError(err)
@@ -1034,12 +1098,13 @@ local function cmd()
 					end
 				end
 			elseif fs.exists("/bin/"..e) and #e > 0 and not m then
+				--if the file exists in /bin/
 				if bg == false then
+					--start in foreground mode
 					local f, err = loadfile("/bin/"..e)
 					if not f then
 						printError(err)
 					else
-						--f(unpack(args))
 						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, "/bin/"..e)
 						if f then
 							foreground[f.uid] = true
@@ -1049,7 +1114,7 @@ local function cmd()
 						end
 					end
 				elseif bg == true then
-					--local f, err = thread.new(shell.dir().."/"..e, nil, nil, nil, nil, nil, nil, nil, nil, args)
+					--start in background mode
 					local f, err = loadfile("/bin/"..e)
 					if not f then
 						printError(err)
@@ -1065,13 +1130,16 @@ local function cmd()
 					end
 				end
 			elseif m then
+				--if the user entered a built-in command
 				if e == "kill" then
+					--check for arguments and start kill()
 					if #args ~= 1 then
 						print("Usage: kill <UID>")
 					else
 						kill(args[1])
 					end
 				elseif e == "service" then
+					--check for arguments and start sv()
 					if #args ~= 2 then
 						print("Usage: service <start|stop|enable|disable> <name/path> [args]")
 					else
@@ -1080,6 +1148,7 @@ local function cmd()
 				end
 
 				if sudo then
+					--if sudo was entered, get out of it again
 					local ok, err = lib.perm.permission.reLog()
 					if not ok then
 						printError("There was an error with reLog.")
@@ -1089,159 +1158,38 @@ local function cmd()
 					end
 				end
 			elseif fs.exists(e) == false and #e > 0 then
+				--if any of these above don't exist
 				print("Command not found.")
 			end
 		else
+			--if the user entered a false directory
 			printError(corruptMessage)
 		end
 	end
 end
 
+--code
 
+--Clear the screen
+term.setCursorPos(1,1)
+term.setBackgroundColor(colors.black)
+term.clear()
 
---[[local self = {}
-self.main = false
-self.lastx, self.lasty = 1, 1
-self.uid = 1
-self.task = cmd
-self.thread = coroutine.create(self.task)
-self.file = "CommandLine"
-self.filter = nil
-self.error = nil
-self.dead = false
-self.status = "suspended"
-self.queue = {}
-self.resume = function(...)
+--start the login script
+login()
 
-		local fst = {...}
-		--if self.filter == nil or fst[1] == self.filter then
-		if not self.dead then
-			if self.window ~= nil then
-				--local o = term.current()
-				--self.window.redraw()
-				term.redirect(self.window)
-				--term.setCursorPos(self.lastx, self.lasty)
-			elseif mainwindow then
-				--mainwindow.redraw()
-				--self.lastx, self.lasty = mainwindow.getCursorPos()
-				--self.lastx = lastx
-				--self.lasty = lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(self.lastx, self.lasty)
-			end
-			--term.restoreCursor()
-			ok, err = coroutine.resume(self.thread, unpack(fst))
-			self.lastx, self.lasty = term.getCursorPos()
-			if self.main == true then
-				lastx = self.lastx
-				lasty = self.lasty
-			end
-			if mainwindow and self.main == false then
-				lastx = self.lastx
-				lasty = self.lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(lastx, lasty)
-			end
-			if ok then
-				self.filter = err
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			else
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			end
-		else
-			return false
-		end
-		--end
-	end
-started[1] = self
-self.next = started
-tasks = self.next]]
-
---[[local self = {}
-self.main = false
-self.lastx, self.lasty = 1, 1
-self.uid = 2
-self.task = rednet.run
-self.thread = coroutine.create(self.task)
-self.file = "RedNet"
-self.background = true
-self.filter = nil
-self.error = nil
-self.dead = false
-self.status = "suspended"
-self.queue = {}
-self.resume = function(...)
-
-		local fst = {...}
-		--if self.filter == nil or fst[1] == self.filter then
-		if not self.dead then
-			if self.window ~= nil then
-				term.redirect(self.window)
-				--term.setCursorPos(self.lastx, self.lasty)
-			elseif mainwindow then
-				--mainwindow.redraw()
-				--self.lastx, self.lasty = mainwindow.getCursorPos()
-				--self.lastx = lastx
-				--self.lasty = lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(self.lastx, self.lasty)
-			end
-			--term.restoreCursor()
-			ok, err = coroutine.resume(self.thread, unpack(fst))
-			self.lastx, self.lasty = term.getCursorPos()
-			if self.main == true then
-				lastx = self.lastx
-				lasty = self.lasty
-			end
-			if mainwindow and self.main == false then
-				lastx = self.lastx
-				lasty = self.lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(lastx, lasty)
-			end
-			if ok then
-				self.filter = err
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			else
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			end
-		else
-			return false
-		end
-		--end
-	end
-started[2] = self
-self.next = started
-tasks = self.next]]
-
-
+--Add the cmd function as the main task, with the parent window
 local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1, {}, "/sys/cmdbak")
 if not n then
 	printError(err)
 end
-tasks = n.next
---[[local n, err = thread.new(rednet.run)
-if not n then
-	printError(err)
-end
-tasks = n.next]]
 
+--Reload the tasklist
+tasks = n.next
+
+--Try to run all tasks, if it fails, it sets to dead, which leads to /vit/alive restarting
 local ok, err = pcall(thread.runAll, tasks)
 if not ok then
-	print(err)
+	printError(err)
+	flag.STATE_DEAD = true
 end
-	--[[parallel.waitForAll(
-		function()
-			thread.runAll(tasks)
-		end,
-		function()
-			cmd()
-		end)]]
