@@ -26,11 +26,16 @@ local _users = nil
 if _users == nil then
 	_users = {}
 	print("No users")
-	local file = old.fs.open("/sys/usrData", "r")
-	local inhalt = file.readAll()
-	_users = textutils.unserialize(inhalt)
-	file.close()
-
+	if fs.exists("/sys/usrData") then
+		local file = old.fs.open("/sys/usrData", "r")
+		local inhalt = file.readAll()
+		_users = textutils.unserialize(inhalt)
+		file.close()
+	else
+		local file = old.fs.open("/sys/usrData", "w")
+		file.write(textutils.serialize(_users))
+		file.close()
+	end
 end
 
 function hashPw(p, salt)
