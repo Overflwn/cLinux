@@ -1177,8 +1177,16 @@ term.setCursorPos(1,1)
 term.setBackgroundColor(colors.black)
 term.clear()
 
---start the login script
-login()
+--start the login script, if no user is logged in
+
+local ok, err, err2 = pcall(lib.perm.permission.getCurrentUser)
+if not ok then
+	flag.STATE_CRASHED = err
+end
+
+if #err == "" then
+	login()
+end
 
 --Add the cmd function as the main task, with the parent window
 local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1, {}, "/sys/cmdbak")
