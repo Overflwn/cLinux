@@ -6,7 +6,7 @@
 	CATEGORY:    Binary
 	SET:         Core Binary
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		This program creates a folder in the specified path or
 		in the current directory.
 ]]--
@@ -31,16 +31,16 @@ local function m(d)
 	if r == false and a == nil then
 		inhome = false
 	end
-	
+
 	if falseDir == false then
-		
-		
+
+
 		local path = currentDir.."/"..d
 		local a, b = string.find(d, "/")
 		if a == 1 then
 			path = d
 		end
-		local a, b = string.find(path, "[..]/")
+		local a, b = string.find(path, "%../")
 		if a then
 			--d = string.gsub(d, "/", "", 1)
 			local col = term.getTextColor()

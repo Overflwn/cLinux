@@ -154,7 +154,9 @@ function _fs.delete(p)
 	end
 end
 
-_fs.combine = old.fs.combine
+_fs.combine = function(a, b)
+	return "/"..old.fs.combine(a, b)
+end
 _fs.find = old.fs.find
 _fs.getDir = old.fs.getDir
 _fs.complete = old.fs.complete
