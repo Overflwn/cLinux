@@ -1012,7 +1012,7 @@ local function cmd()
 			corruptPath = true
 			corruptMessage = "Invalid path."
 		end
-		local i, j = string.find(e, "%..")
+		local i, j = string.find(e, "%.%.")
 		if i and #e > 2 then
 			corruptPath = true
 			corruptMessage = "Invalid path."
@@ -1023,7 +1023,7 @@ local function cmd()
 				corruptPath = true
 				corruptMessage = "Invalid path."
 			end
-			local i, j = string.find(a, "%..")
+			local i, j = string.find(a, "%.%.")
 			if i and #a > 2 then
 				corruptPath = true
 				corruptMessage = "Invalid path."
