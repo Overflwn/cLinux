@@ -75,7 +75,6 @@ function shell.run(path, ...)
 			b[k] = v
 		end
 		for k, v in pairs(b['lib']) do
-			print(tostring(k))
 			b[k] = v
 		end
 	end
