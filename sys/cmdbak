@@ -1188,7 +1188,8 @@ if type(err) == "string" and #err < 1 or err == nil then
 end
 
 --Add the cmd function as the main task, with the parent window
-local n, err = thread.new(cmd, nil, nil, 51, 19, term.current(), true, 1, 1, {}, "/sys/cmdbak")
+local maxX, maxY = term.getSize()
+local n, err = thread.new(cmd, nil, nil, maxX, maxY, term.current(), true, 1, 1, {}, "/sys/cmdbak")
 if not n then
 	printError(err)
 end

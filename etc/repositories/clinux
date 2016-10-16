@@ -21,6 +21,16 @@ name = doorX
 		url = http://pastebin.com/raw/Rnp97GRT
 		filename = InstallDoorX
 	dependencies = none
-	version = 2.0
+	cleanup = InstallDoorX uninstall
+	version = 2.1
 	size = 4210
+end
+
+name = updater
+	type = raw
+		url = http://pastebin.com/raw/NKEKjfpb
+		filename = UpdateCLinux
+	dependencies = none
+	version = 1.0
+	size = 4350
 end
