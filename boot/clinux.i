@@ -309,6 +309,32 @@ function bos.loadAPI( _sPath )
     return true, _putLib(sName, tAPI), _put(sName, tAPI)
 end
 
+local oos = {}
+for k, v in pairs(_G.os) do
+    oos[k] = v
+end
+
+function bos.pullEvent(_filtr)
+    if _filtr then
+        repeat
+            local evt = {oos.pullEvent()}
+        until evt[1] == _filtr
+        return unpack(evt)
+    else
+        return oos.pullEvent()
+    end
+end
+
+function bos.pullEventRaw(_filtr)
+    if _filtr then
+        repeat
+            local _, a, b, c = oos.pullEventRaw()
+        until _ == _filtr
+        return _, a, b, c
+    else
+        return oos.pullEventRaw()
+    end
+end
 
 --[[
 	cLinux : Lore of the Day!

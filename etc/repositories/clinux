@@ -34,3 +34,12 @@ name = updater
 	version = 1.0
 	size = 4350
 end
+
+name = fsExpose
+	type = raw
+		url = http://pastebin.com/raw/93ERVyeQ
+		filename = fsexpose
+	dependencies = none
+	version = 2.3
+	size = 18195
+end

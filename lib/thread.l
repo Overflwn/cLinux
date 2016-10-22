@@ -72,7 +72,7 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 	self.queue = {}
 	self.resume = function(...)
 		local fst = {...}
-		--if self.filter == nil or fst[1] == self.filter then
+		if self.filter == nil or fst[1] == self.filter then
 			ok, err = coroutine.resume(self.thread, unpack(fst))
 
 			if ok then
@@ -84,7 +84,7 @@ function thread.new(file, uid) --extra is a table with extra things that should 
 				if self.status == "dead" then self.dead = true end
 				return ok, err
 			end
-		--end
+		end
 	end
 	started[self.uid] = self
 	self.next = started
