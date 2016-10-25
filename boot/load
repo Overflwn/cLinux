@@ -1,0 +1,95 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /boot/load
+	CATEGORY:    boot
+	SET:         Boot II
+	VERSION:     01:alpha0
+	DESCRIPTION:
+		This script is ran after /boot/clinux.i
+		and loads important libraries up
+		and starts the shell at the end.
+]]--
+local old = {}
+old['fs'] = fs
+
+if _G['flag'] and _G['flag']['STATE_INIT'] then
+	if not fs.exists("/sys/fs.l") then
+		cLinuxPrintError("/sys/fs.l not found...")
+		sleep(2)
+		flag.STATE_DEAD = true
+	elseif not fs.exists("/sys/perm.l") then
+		cLinuxPrintError("/sys/perm.l not found...")
+		sleep(2)
+		flag.STATE_DEAD = true
+	elseif not fs.exists("/sys/thread.l") then
+		cLinuxPrintError("/sys/thread.l not found...")
+		sleep(2)
+		flag.STATE_DEAD = true
+	end
+	print("Loading FS API")
+	local ok, err = loadAPI("/sys/fs.l")
+	if ok == false then
+		cLinuxPrintError("[fs.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		break
+	end
+	print("Loading perm API")
+	local ok, err = loadAPI("/sys/perm.l")
+	if ok == false then
+		cLinuxPrintError("[perm.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		break
+	end
+	print("Loading thread API")
+	local ok, err = loadAPI("/sys/perm.l")
+	if ok == false then
+		cLinuxPrintError("[thread.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		break
+	end
+	local ok, err = loadAPI("/sys/fs.l"))
+	for _, a in ipairs(fs.list("/lib/")) do
+		print("Loading "..a)
+		local ok, err = loadAPI("/lib/"..a)
+		if ok == false then
+			local c = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("["..a.."] "..tostring(err))
+			term.setTextColor(c)
+		else
+			local c = term.getTextColor()
+			term.setTextColor(colors.green)
+			term.write("[OK]")
+			term.setTextColor(c)
+			print(" "..a.." loaded!")
+			sleep(0.5)
+		end
+	end
+
+
+	if _G.lib.os then
+		_G.lib.os['shutdown'] = os.shutdown
+		_G.lib.os['reboot'] = os.reboot
+	end
+	local xBox = {}
+
+	for _, a in pairs(_G) do
+		xBox[_] = a
+	end
+	local x, err = thread.new("/sys/shell.lua", 1)
+	if x == false then
+		cLinuxPrintError("Shell", err)
+		sleep(2)
+	end
+	thread.runAll(x.next)
+	flag.STATE_DEAD = true
+else
+	term.clear(1,1)
+	term.setCursorPos(1,1)
+	printError("cLinux not initialized, boot cLinux.i")
+end

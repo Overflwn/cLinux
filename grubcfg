@@ -1,0 +1,16 @@
+--[[
+	Configuration file for the
+	cLinux GRUB menu.
+]]
+
+{
+	list = {				--This contains the paths to every image you want to boot. (they need to be in /boot/)
+		"clinux.i",
+		"CraftOS",
+	},
+	command = {			--The default command, which the command is booted with (Please in same order as above)
+		"",
+		"",
+	},
+	default = 1
+}

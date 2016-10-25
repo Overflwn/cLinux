@@ -1,0 +1,86 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/mkdir
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION:
+		This program creates a folder in the specified path or
+		in the current directory.
+]]--
+
+local function m(d)
+	local currentDir = shell.dir()
+	local r = false
+	local falseDir = false
+	local inhome = true
+	local currentUsr = lib.perm.permission.getCurrentUser()
+	if currentUsr ~= "root" then
+		r = false
+	else
+		r = true
+	end
+	local a, b = string.find(d, "//")
+	local i, j = string.find(d, "~")
+	if a or i ~= nil and i == j then
+		falseDir = true
+	end
+	local a, b = string.find(currentDir, "/home/"..currentUsr.."/")
+	if r == false and a == nil then
+		inhome = false
+	end
+
+	if falseDir == false then
+
+
+		local path = currentDir.."/"..d
+		local a, b = string.find(d, "/")
+		if a == 1 then
+			path = d
+		end
+		local a, b = string.find(path, "%../")
+		if a then
+			--d = string.gsub(d, "/", "", 1)
+			local col = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("Invalid Path.")
+			term.setTextColor(col)
+			return
+		end
+		local a = fs.makeDir(path)
+		if a == "noPermission" then
+			local c = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("You have no privileges, try 'sudo'.")
+			term.setTextColor(c)
+		elseif a == "error" then
+			local c = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("An error occured.")
+			term.setTextColor(c)
+		else
+			return true
+		end
+	elseif falseDir == true then
+		local col = term.getTextColor()
+		term.setTextColor(colors.red)
+		print("Invalid path!")
+		term.setTextColor(col)
+		return false
+	else
+		print("User not found.")
+		return false
+	end
+end
+
+
+local tArgs = {...}
+
+if #tArgs < 1 or #tArgs > 1 then
+	print("Usage:")
+	print("		mkdir <folderName>")
+else
+	m(tArgs[1])
+end

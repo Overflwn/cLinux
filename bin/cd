@@ -1,0 +1,41 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/cd
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program lists changes the current directory to
+		the specified path.
+]]--
+
+local tArgs = {...}
+
+if #tArgs < 1 or #tArgs > 1 then
+	print("Usage:")
+	print("		cd <path>")
+else
+	if tArgs[1] ~= ".." then
+		local ok = shell.setDir(tArgs[1])
+		if ok == false then
+			printError("Not a directory.")
+		end
+	elseif tArgs[1] == ".." then
+		local p = shell.dir()
+		p = string.reverse(p)
+		local i, j = string.find(p, "/")
+		if i == 1 then
+			i, j = string.find(string.sub(p, j+1), "/")
+		end
+		if i then
+			p = string.sub(p, i+1, #p)
+		end
+		p = string.reverse(p)
+		local ok = shell.setDir(p)
+		if ok == false then
+			printError("Not a directory.")
+		end
+	end
+end

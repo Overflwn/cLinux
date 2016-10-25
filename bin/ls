@@ -1,0 +1,152 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/ls
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program lists every folder/file in the current directory
+		and prints them in their color (folders = blue, files = lime)
+]]--
+
+local function listFiles(dir)
+	local maxX, maxY = term.getSize()
+	if dir == nil or dir == "" then
+		dir = shell.dir()
+	end
+	local i, j = string.find(dir, "/", #dir)
+	if i then
+		dir = dir
+	else
+		dir = dir.."/"
+	end
+	local files = {}
+	local folders = {}
+	local raw = {}
+	
+	raw = fs.list(dir)
+	for _, a in ipairs(raw) do
+		local c, d = string.find(a, "[.]")
+		if c ~= 1 or c == nil then
+			if fs.isDir(dir..a) then
+				table.insert(folders, a)
+			else
+				table.insert(files, a)
+			end
+		end
+	end
+	local col = term.getTextColor()
+	if #folders > 0 then
+		term.setTextColor(colors.blue)
+		local c = 1
+		local x, y = term.getCursorPos()
+		for _, folder in ipairs(folders) do
+			local h, j = term.getCursorPos()
+			local k = folder.." "
+			if c < 8 and h+#k <= maxX then
+				term.setTextColor(colors.blue)
+				term.write(folder.." ")
+				c = c+1
+			elseif c == 8 and h+#k <= maxX then
+				term.setTextColor(colors.blue)
+				term.write(folder)
+				c = 1
+				local x, y = term.getCursorPos()
+				if _ < #folders then
+					if y+1 ~= maxY+1 then
+						term.setCursorPos(1, y+1)
+					else
+						term.scroll(1)
+						term.setCursorPos(1, maxY)
+					end
+				end
+			else
+				c = 1
+				local x, y = term.getCursorPos()
+				if y+1 ~= maxY+1 then
+					term.setTextColor(colors.blue)
+					term.setCursorPos(1, y+1)
+					term.write(folder.." ")
+					c = c+1
+				else
+					term.setTextColor(colors.blue)
+					term.scroll(1)
+					term.setCursorPos(1, maxY)
+					term.write(folder.." ")
+					c = c+1
+				end
+			end
+		end
+		local x, y = term.getCursorPos()
+		if y+1 ~= maxY+1 then
+			term.setCursorPos(1, y+1)
+		else
+			term.scroll(1)
+			term.setCursorPos(1, maxY)
+		end
+	end
+	if #files > 0 then
+		term.setTextColor(colors.lime)
+		c = 1
+		local x, y = term.getCursorPos()
+		--[[if y+1 ~= 20 then
+			term.setCursorPos(1, y+1)
+		else
+			term.scroll(1)
+			term.setCursorPos(1, 19)
+		end]]
+		for _, file in ipairs(files) do
+			local h, j = term.getCursorPos()
+			local k = file.." "
+			if c < 8 and h+#k <= maxX then
+				term.write(file.." ")
+				c = c+1
+			elseif c == 8 and h+#k <= maxX then
+				term.write(file)
+				c = 1 
+				local x, y = term.getCursorPos()
+				if _ < #files then
+					if y+1 ~= maxY+1 then
+						term.setCursorPos(1, y+1)
+					else
+						term.scroll(1)
+						term.setCursorPos(1, maxY)
+					end
+				end
+			else
+				c = 1
+				local x, y = term.getCursorPos()
+				if y+1 ~= maxY+1 then
+					term.setCursorPos(1, y+1)
+					term.write(file.." ")
+					c = c+1
+				else
+					term.scroll(1)
+					term.setCursorPos(1, maxY)
+					term.write(file.." ")
+					c = c+1
+				end
+			end
+		end
+		local x, y = term.getCursorPos()
+		if y+1 ~= 20 then
+			term.setCursorPos(1, y+1)
+		else
+			term.scroll(1)
+			term.setCursorPos(1, maxY)
+		end
+	end
+	term.setTextColor(col)
+	
+end	
+
+local tArgs = {...}
+
+if #tArgs > 1 then
+	print("Usage:")
+	print("		ls <path>")
+else
+	listFiles(tArgs[1])
+end

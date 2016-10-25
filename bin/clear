@@ -1,0 +1,14 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/clear
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program clears the screen.
+]]--
+
+term.setCursorPos(1,1)
+term.clear()

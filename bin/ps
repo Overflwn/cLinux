@@ -1,0 +1,21 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/ps
+	CATEGORY:    Binary
+	SET:         Core Binary
+	VERSION:     01:alpha0
+	DESCRIPTION: 
+		This program lists every running process with their
+		corresponding UID and their name (RedNet and Shell are both named function blah)
+]]--
+
+print("UID | Name/Path")
+local tasks = thread.getList()
+for _, a in pairs(tasks) do
+	if not a.dead then
+		term.write(tostring(a.uid).." | ")
+		print(tostring(a.file))
+	end
+end
