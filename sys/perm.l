@@ -13,7 +13,8 @@
 		Most of these functions are selfexplaining.
 ]]--
 
-
+local old = {}
+old['fs'] = fs
 local sha = os.loadAPI("/lib/sha.l")
 local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 local perm = {}

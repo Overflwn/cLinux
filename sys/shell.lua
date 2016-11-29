@@ -1,5 +1,4 @@
 
-
 --[[
 	cLinux : Lore of the Day!
 	Made by Piorjade, daelvn
@@ -23,13 +22,13 @@ end]]
 local tasks = {}
 local curPath = "/"
 local maintask = 0
-thread = sThread
+local thread = sThread
 term.setCursorPos(1,1)
 term.setBackgroundColor(colors.blue)
 term.setTextColor(colors.white)
 term.clear()
 _put('rednet', lib.rednet)
-_put('os', lib.os)
+--_put('os', lib.os)
 
 --[[
 						##EXPERIMENTAL##

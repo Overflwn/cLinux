@@ -33,8 +33,6 @@ local lastx = 1
 local lasty = 1
 local foreground = {}
 local sudo = false
-
-
 --functions
 
 
@@ -107,7 +105,7 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs, 
 	self.env = {}
 	_copy(_G, self.env)
 	setmetatable(self.env, {__index = lib})
-	
+
 
 	blacklist = {'rawget', 'rawset', 'dofile', 'old'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
@@ -362,7 +360,7 @@ function sThread.runAll(tasklist)
 	end
 	return
 end
-thread = sThread
+--thread = sThread
 
 
 --[[

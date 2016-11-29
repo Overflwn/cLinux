@@ -1,4 +1,5 @@
-
+print("Loading")
+sleep(2)
 CHANNEL_BROADCAST = 65535
 CHANNEL_REPEAT = 65533
 
@@ -358,10 +359,11 @@ function loadAPI(path)
 		local ok, err = ok()
 		if ok == false then
 			return false, err
+		else
+			return true
 		end
 	end
 end
-local ok, err = loadAPI("/lib/thread.l")
 
 -- Put in _G
 function _put(a,b) _G[a]=b end
@@ -385,7 +387,11 @@ _put('_check', _check)
 _put('flag', {})
 
 
-
+local ok, err = loadAPI("/sys/thread.l")
+if not ok then
+	printError(err)
+	return
+end
 
 
 function _flag(a,b) _G.flag[a] = b end
@@ -411,7 +417,7 @@ end
 local function cLinuxPrintError(status, message)
 	local c = term.getTextColor()
 	term.setTextColor(colors.red)
-	print("["..status.."] "..message)
+	print("["..tostring(status).."] "..tostring(message))
 	term.setTextColor(c)
 end
 
@@ -445,26 +451,55 @@ _put('syserror', syserror)
 _G.printError = function()
 	_G.printError = syserror
 	_G['rednet'] = nil
+	print("Okay!")
 	local evt = {}
-	--local a = loadfile("/rom/apis/rednet")
-	--a()
-	--while not flag.STATE_DEAD do
-		--coroutine.resume(c1, unpack(evt))
-		local alive, err = thread.new("/boot/load", 1)
-		local nextf, err = thread.new("/vit/alive", 2)
-		nextf, err = thread.new(lib.rednet.run, 3)
-		_G['toplevel'] = nextf.next
-		local ok, err = pcall(function ()
-			parallel.waitForAny(
-				function()
-					thread.runAll(nextf.next)
-				end	)
-		end)
-		if not ok then
-			print(err)
-			sleep(2)
+		--initiate ground-environment
+		local newenv = {}
+		for k, v in pairs(_G) do
+			newenv[k] = v
 		end
-		--evt = {os.pullEvent()}
+		setmetatable(newenv, {})
+		--initiate ground-tasklist
+		local tasks = {}
+		tasks['list'] = {}
+		tasks['last_uid'] = 0
+
+
+
+		print("loading core")
+		local ok, err = thread.new("/boot/load", newenv, "Core", tasks)
+		if not ok then
+			cLinuxPrintError("Core", err)
+		end
+		print("loading alive")
+		print(tostring(#tasks.list))
+		sleep(2)
+		local ok, err = thread.new("/vit/alive", newenv, "Alive", tasks, tasks)
+		if not ok then
+			cLinuxPrintError("Alive", err)
+		end
+		print("loading rednet")
+		print(tostring(#tasks.list))
+		sleep(2)
+		local ok, err = thread.new(lib.rednet.run, newenv, "RedNet", tasks)
+		if not ok then
+			cLinuxPrintError("RedNet", err)
+		end
+		print('Loaded Threads')
+		print(tostring(#tasks.list))
+		sleep(2)
+
+
+		local running = true
+		while running do
+			local ok = thread.resumeAll(tasks, evt)
+			evt = {os.pullEventRaw()}
+			if ok == false then
+				running = false
+			end
+		end
+		print(err)
+		sleep(2)
 	--end
 	print("Looks like /vit/alive failed..")
 	sleep(1)

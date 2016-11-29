@@ -11,8 +11,6 @@
 		and loads important libraries up
 		and starts the shell at the end.
 ]]--
-local old = {}
-old['fs'] = fs
 
 if _G['flag'] and _G['flag']['STATE_INIT'] then
 	if not fs.exists("/sys/fs.l") then
@@ -28,31 +26,31 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		sleep(2)
 		flag.STATE_DEAD = true
 	end
-	print("Loading FS API")
-	local ok, err = loadAPI("/sys/fs.l")
-	if ok == false then
-		cLinuxPrintError("[fs.l] "..tostring(err))
-		flag.STATE_DEAD = true
-		sleep(1)
-		break
-	end
+
 	print("Loading perm API")
 	local ok, err = loadAPI("/sys/perm.l")
-	if ok == false then
+	if ok == false or _G.lib.perm == nil then
 		cLinuxPrintError("[perm.l] "..tostring(err))
 		flag.STATE_DEAD = true
 		sleep(1)
-		break
+		return
+	end
+	print("Loading FS API")
+	local ok, err = loadAPI("/sys/fs.l")
+	if ok == false or _G.fs == nil then
+		cLinuxPrintError("[fs.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		return
 	end
 	print("Loading thread API")
-	local ok, err = loadAPI("/sys/perm.l")
-	if ok == false then
+	local ok, err = loadAPI("/sys/thread.l")
+	if ok == false or _G.thread == nil then
 		cLinuxPrintError("[thread.l] "..tostring(err))
 		flag.STATE_DEAD = true
 		sleep(1)
-		break
+		return
 	end
-	local ok, err = loadAPI("/sys/fs.l"))
 	for _, a in ipairs(fs.list("/lib/")) do
 		print("Loading "..a)
 		local ok, err = loadAPI("/lib/"..a)
@@ -67,26 +65,50 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.write("[OK]")
 			term.setTextColor(c)
 			print(" "..a.." loaded!")
-			sleep(0.5)
+			--sleep(0.5)
 		end
 	end
-
+	print("Finished!")
 
 	if _G.lib.os then
 		_G.lib.os['shutdown'] = os.shutdown
 		_G.lib.os['reboot'] = os.reboot
 	end
+
+	--initiate shell-level-tasklist
+	local tasks = {}
+	tasks['list'] = {}
+	tasks['last_uid'] = 0
+
+	--[[while true do
+		local e = read()
+		print(e)
+		if e == "break" then
+			break
+		end
+	end]]
 	local xBox = {}
 
 	for _, a in pairs(_G) do
 		xBox[_] = a
 	end
-	local x, err = thread.new("/sys/shell.lua", 1)
+	--xBox._G = xBox
+	--setmetatable(xBox, {__index = xBox.lib})
+	--xBox._G = xBox
+	local x, err = thread.new("/sys/shell.lua", xBox, "Shell", tasks)
 	if x == false then
 		cLinuxPrintError("Shell", err)
 		sleep(2)
 	end
-	thread.runAll(x.next)
+	local running = true
+	local evt = {}
+	while running do
+		local ok = thread.resumeAll(tasks, evt)
+		evt = {os.pullEventRaw()}
+		if ok == false then
+			running = false
+		end
+	end
 	flag.STATE_DEAD = true
 else
 	term.clear(1,1)

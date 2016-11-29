@@ -12,19 +12,17 @@
 		(This is only locally to the TLCO)
 ]]--
 
---Define thead table (containing the main functions)
+--Define thread table (containing the main functions)
 local thread = {}
-local tasks = {}
-local last_uid = -1
 --Function to create a new thread
-function thread.new(p, env, name)
+function thread.new(p, env, name, tasklist, tArgs)
 	if not p then return end
 	if not env then return end
 	if not name then
 		name = tostring(p)
 	end
 	--load p as function, if it's a path (string)
-	if not type(p) == "function" then
+	if type(p) ~= "function" then
 		if type(p) == "string" then
 			p, err = loadfile(p)
 			if not p then
@@ -34,18 +32,24 @@ function thread.new(p, env, name)
 			return false, "function expected, got "..type(p)
 		end
   end
-	local uid = last_uid+1
-	last_uid = last_uid+1
+	local uid = tasklist.last_uid+1
+	tasklist.last_uid = tasklist.last_uid+1
 	--define self, containing important functions and variables
 	local self = {}
 	--set self.function as p, with a new environment
-	self.function = load(p, nil, "t", env)
-	self.task = coroutine.create(self.function)
+	setfenv(p, env)
+	self.func = p
+	self.task = coroutine.create(self.func)
 	self.dead = false
+	self.name = name
 	self.uid = uid
 	self.filter = nil
-	function self.resume(...)
-		local fst = {...}
+	--resume/start the coroutine (function/file)
+	--saveArgs is to store the arguments and execute the program after resume is being called the 2nd time
+	function self.resume(args)
+		local fst = args
+		local stat = coroutine.status(self.task)
+		if stat == "dead" then self.dead = true end
 		if not self.dead and self.filter == nil or not self.dead and self.filter == fst[1] then
 			local ok, err = coroutine.resume(self.task, table.unpack(fst))
 			if ok then
@@ -58,33 +62,60 @@ function thread.new(p, env, name)
 			else
 				return false, err
 			end
-		else
+		elseif self.dead then
 			return false, "is dead"
 		end
 	end
+	if tArgs ~= nil then
+		env['startArgs'] = tArgs
+	end
 	--insert self into tasks (with uid (as string) as key)
-	tasks[tostring(self.uid)] = self
+	table.insert(tasklist.list, self)
+
 	return true
 end
---resume a specific uid (give uid as string)
-function thread.resume(uidstr, ...)
-	local targs = {...}
-	local ok, err = tasks[uidstr].resume(table.unpack(targs))
-	if not ok then
-		return false, err
-	else
-		return true
+--resume a specific task (by given name)
+function thread.resume(name, tasklist, ...)
+	for uid, v in ipairs(tasklist.list) do
+		if v.name == name then
+			local targs = {...}
+			local ok, err = tasklist.list[uid].resume(table.unpack(targs))
+			if not ok then
+				return false, err
+			else
+				return true
+			end
+			break
+		end
 	end
+
+end
+
+--search thread by name and return status
+function thread.getStatus(name, tasklist)
+	for k, v in ipairs(tasklist.list) do
+		if v.name == name then
+			if v.dead then
+				return "dead"
+			else
+				return "yielding"
+			end
+		end
+	end
+	return nil
 end
 --resume all tasks, with optionally given arguments/events
-function thread.resumeAll(...)
-	local tArgs = {...}
-	for k, v in pairs(tasks) do
+function thread.resumeAll(tasklist, tArgs)
+	for k, v in ipairs(tasklist.list) do
 		if not v.dead then
-			local ok, err = v.resume(table.unpack(tArgs))
-			if not ok then
-				cLinuxPrintError(err)
+			local ok, err = v.resume(tArgs)
+			if ok == false then
+				cLinuxPrintError(v.name, err)
+				return false
 			end
 		end
 	end
 end
+
+
+_put("thread", thread)
