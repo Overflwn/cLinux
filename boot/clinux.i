@@ -318,11 +318,11 @@ end
 function bos.pullEvent(_filtr)
     if _filtr then
         repeat
-            local evt = {oos.pullEvent()}
+            local evt = {oos.pullEventRaw()}
         until evt[1] == _filtr
         return unpack(evt)
     else
-        return oos.pullEvent()
+        return oos.pullEventRaw()
     end
 end
 
@@ -463,6 +463,7 @@ _G.printError = function()
 		local tasks = {}
 		tasks['list'] = {}
 		tasks['last_uid'] = 0
+		tasks['somethingInFG'] = false
 
 
 

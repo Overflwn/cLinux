@@ -14,11 +14,14 @@
 --[[
 	Resetting taskmanager on cmd level
 ]]
-
+print(type(shell))
+sleep(2)
 --variables and tables
-sThread = {}
-tasksbg = {}
-tasks = {}
+tasks = {
+	list = {},
+	last_uid = 0,
+	somethingInFG = false,
+}
 
 local errors = {
 	ok = "noError",
@@ -34,339 +37,6 @@ local lasty = 1
 local foreground = {}
 local sudo = false
 --functions
-
-
---[[
-							TASKMANAGER
-				(edited version of sThread.l)
-]]
-
-
-function sThread.getStatus(tasklist, uid)
-	if tasklist[uid] then
-		return tasklist[uid].status
-	else
-		return nil
-	end
-end
-
-
-function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, tArgs, name) --fg is a boolean if the process should show term drawing
-	if fg == nil then
-		fg = true
-	end
-	if main == nil then
-		main = false		--main indicates if that thread is the core window, for example the commandline
-	end
-	uid = uid or last_uid + 1
-	last_uid = last_uid + 1
-	extra = extra or {}
-	local self = {}
-	self.main = false
-	self.lastx = 1
-	self.lasty = 1
-	if width ~= nil then
-		if parent == nil then
-			parent = mainwindow
-		end
-		self.window = window.create(parent, 1, 1, width, height, fg)
-		self.window.clear()
-	end
-	if main == true then
-		self.main = true
-		mainuid = uid
-		mainwindow = self.window
-		if lx ~= nil then
-			self.lastx = lx
-		else
-			self.lastx = 1
-		end
-		if ly ~= nil then
-			self.lasty = ly
-		else
-			self.lasty = 1
-		end
-		lastx = self.lastx
-		lasty = self.lasty
-	else
-		self.main = false
-	end
-
-	self.uid = uid
-	local function _copy(a, b)
-		for k, v in pairs(a) do
-			b[k] = v
-		end
-		b['thread'] = thread
-		b['shell']['getRunningProgram'] = function()
-			return tostring(self.file)
-		end
-	end
-	self.env = {}
-	_copy(_G, self.env)
-	setmetatable(self.env, {__index = lib})
-
-
-	blacklist = {'rawget', 'rawset', 'dofile', 'old'}	--things that shouldn't get added, and extras
-	for k, v in ipairs(blacklist) do self.env[v] = nil end
-	--for k, v in ipairs(blacklist) do self.env['_G'][v] = nil end
-	--[[if type(file) == "string" then
-
-		_, self.task, err = pcall(loadfile, file)
-		if not self.task then
-			return false, err
-		end]]
-	if type(file) == "function" then
-		self.task = file
-	else
-		return false, "function expected, got "..type(file)
-	end
-
-
-	setfenv(self.task, self.env)
-	self.thread = coroutine.create(self.task)
-	self.file = name
-	self.filter = nil
-	self.error = nil
-	self.dead = false
-	self.status = "suspended"
-	self.queue = {}
-	if tArgs ~= nil then
-		self.args = tArgs
-	end
-	self.resume = function(...)
-		local fst = {...}
-		if self.args ~= nil then
-			fst = self.args
-			self.args = nil
-		end
-		--if self.filter == nil or fst[1] == self.filter then
-		if not self.dead then
-			if self.window ~= nil then
-				--local o = term.current()
-				--[[if self.main then
-					self.lastx, self.lasty = lastx, lasty
-				end]]
-				--self.window.redraw()
-				term.redirect(self.window)
-				--term.setCursorPos(self.lastx, self.lasty)
-			elseif mainwindow then
-				--mainwindow.redraw()
-				--self.lastx, self.lasty = mainwindow.getCursorPos()
-				--self.lastx = lastx
-				--self.lasty = lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(self.lastx, self.lasty)
-			end
-			--term.restoreCursor()
-			--[[if self.window ~= nil or self.main then
-				self.lastx = lastx
-				self.lasty = lasty
-				term.setCursorPos(self.lastx, self.lasty)
-			end]]
-			ok, err = coroutine.resume(self.thread, unpack(fst))
-			self.lastx, self.lasty = term.getCursorPos()
-			if self.main == true then
-				lastx = self.lastx
-				lasty = self.lasty
-			end
-			if mainwindow and self.main == false then
-				lastx = self.lastx
-				lasty = self.lasty
-				term.redirect(mainwindow)
-				--term.setCursorPos(lastx, lasty)
-			end
-			if ok then
-				self.filter = err
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			else
-				self.status = coroutine.status(self.thread)
-				if self.status == "dead" then self.dead = true end
-				return ok, err
-			end
-		else
-			return
-		end
-		--end
-	end
-	started[self.uid] = self
-	self.next = started
-	return self
-end
-
-function sThread.queue(process, event, parameters)
-	process.queue[#process.queue+1] = {event = event, parameters = parameters}
-	return true
-end
-
-function sThread.kill(uid)
-	if uid < 2 and not flag.STATE_SHUTDOWN or uid < 2 and not flag.STATE_RESTART then return false end
-	if tasks[uid] and tasks[uid].status then
-		table.remove(tasks, uid)
-		foreground[uid] = nil
-		for k, v in ipairs(tasks) do
-			if k >= uid then
-				v.uid = v.uid-1
-			end
-		end
-		last_uid = #tasks
-		--tasks[uid].dead = true
-		--tasks[uid].status = "dead"
-		return true
-	else
-		return nil
-	end
-end
-
-
-function sThread.getList()
-	return tasks
-end
-
-function sThread.killAll(tasklist)
-	if not flag.STATE_SHUTDOWN or not flag.STATE_RESTART then return false end
-	for uid, task in pairs(tasklist) do
-			sThread.kill(task)
-	end
-end
-
-function sThread.getError()
-	if errors.ok ~= "noError" then
-		local oldok, olderr = errors.ok, errors.err
-		errors.ok, errors.err = "noError", nil
-		return oldok, olderr
-	else
-		return "noError"
-	end
-end
-
-function sThread.runAll(tasklist)
-	evt = {"key", keys.l}
-	while true do
-		if #tasklist < 1 then
-			break
-		end
-
-		local counter = 0
-		for _, a in pairs(foreground) do
-			if foreground[_] == true then
-				counter = counter+1
-			end
-		end
-
-		if counter > 0 then
-			for uid, task in ipairs(tasklist) do
-				if task.dead then
-
-					table.remove(tasklist, uid)
-					for k, v in ipairs(tasklist) do
-						if k >= uid then
-							v.uid = v.uid-1
-						end
-					end
-					foreground[uid] = nil
-					last_uid = #tasklist
-
-				elseif foreground[uid] then
-
-					ok, err = task.resume(unpack(evt))
-					if ok == nil or ok == true then
-						if task.dead then
-							if sudo then
-								sudo = false
-								local ok = lib.perm.permission.reLog()
-								if not ok then
-									printError("Unknown error at reLog")
-								end
-							end
-						end
-					else
-						printError(err)
-						task.dead = true
-						task.status = "dead"
-						foreground[uid] = nil
-						table.remove(tasklist, uid)
-						for k, v in ipairs(tasklist) do
-							if k >= uid then
-								v.uid = v.uid-1
-							end
-						end
-						last_uid = #tasklist
-						if sudo then
-							sudo = false
-							local ok = lib.perm.permission.reLog()
-							if not ok then
-								printError("Unknown error at reLog")
-							end
-						end
-
-					end
-				end
-			end
-		else
-			for uid, task in ipairs(tasklist) do
-				if task.dead then
-					table.remove(tasklist, uid)
-					for k, v in ipairs(tasklist) do
-						if k >= uid then
-							v.uid = v.uid-1
-						end
-					end
-					foreground[uid] = nil
-					last_uid = #tasklist
-
-				else
-					ok, err = task.resume(unpack(evt))
-					if ok == nil or ok == true then
-						if task.dead then
-							if sudo then
-								sudo = false
-								local ok = lib.perm.permission.reLog()
-								if not ok then
-									printError("Unknown error at reLog")
-								end
-							end
-						end
-					else
-						printError(err)
-						task.dead = true
-						task.status = "dead"
-						foreground[uid] = nil
-						table.remove(tasklist, uid)
-						for k, v in ipairs(tasklist) do
-							if k >= uid then
-								v.uid = v.uid-1
-							end
-						end
-						last_uid = #tasklist
-						if sudo then
-							sudo = false
-							local ok = lib.perm.permission.reLog()
-							if not ok then
-								printError("Unknown error at reLog")
-							end
-						end
-					end
-				end
-			end
-		end
-
-		if #tasklist < 1 then
-			break
-		end
-		evt = {os.pullEventRaw()}
-	end
-	return
-end
---thread = sThread
-
-
---[[
-						TASKMANAGER FINISHED
-]]
-
 
 
 
@@ -546,6 +216,7 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
 	end
 
     local function redraw( _bClear )
+		term.redirect(oldTerm)
 		term.clearLine()
 		rdfirst()
 
@@ -622,9 +293,10 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
             redraw()
         end
     end
+
     while true do
 				term.setCursorBlink( true )
-        local sEvent, param = os.pullEvent()
+        local sEvent, param = os.pullEventRaw()
 
 		redraw()
 		if sEvent == "char" then
@@ -800,14 +472,15 @@ local function cmd()
 	while true do
 		--start commandline loop
 
-		--get any error by a task and print it
+		--[[get any error by a task and print it
 		local ok, err = thread.getError()
 		if ok ~= "noError" then
 			printError(err)
-		end
+		end]]
 
 		--Print the current user and the path (example: test@/bin> _ )
 		local cPath = shell.dir()
+		oldTerm = term.current()
 		term.setTextColor(colors.yellow)
 		term.write(lib.perm.permission.getCurrentUser())
 		term.setTextColor(colors.lime)
@@ -914,6 +587,7 @@ local function cmd()
 		local maincommands = {
 			"kill",
 			"service",
+			"ps"
 		}
 
 		function kill(uid)
@@ -1029,7 +703,12 @@ local function cmd()
 			end
 		end
 
-
+		local newEnv = {}
+		for k, v in pairs(_G) do
+			newEnv[k] = v
+		end
+		newEnv['_G'] = newEnv
+		setmetatable(newEnv, {})
 		--Start executing commands
 		if not corruptPath then
 			if fs.exists(e) and #e > 0 and not m then
@@ -1041,12 +720,17 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
-						if f then
-							foreground[f.uid] = true
-							tasks = f.next
-						else
+						local f, err = thread.new(f, newEnv, e, tasks, args)
+						if not f then
 							printError(err)
+						else
+							for _, a in ipairs(tasks.list) do
+								if a.name == e then
+									a.background = false
+									break
+								end
+							end
+							tasks.somethingInFG = true
 						end
 					end
 				elseif bg == true then
@@ -1055,11 +739,14 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
+						local f, err = thread.new(f, newEnv, e, tasks, args)
 						if f then
-							f['background'] = true
-
-							tasks = f.next
+							for _, v in ipairs(tasks.list) do
+								if v.name == e then
+									v.background = true
+									break
+								end
+							end
 						else
 							printError(err)
 						end
@@ -1074,12 +761,17 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
-						if f then
-							foreground[f.uid] = true
-							tasks = f.next
-						else
+						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args)
+						if not f then
 							printError(err)
+						else
+							for _, a in ipairs(tasks.list) do
+								if a.name == shell.dir().."/"..e then
+									a.background = false
+									break
+								end
+							end
+							tasks.somethingInFG = true
 						end
 					end
 				elseif bg == true then
@@ -1088,11 +780,14 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, shell.dir().."/"..e)
+						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args)
 						if f then
-							f['background'] = true
-
-							tasks = f.next
+							for _, v in ipairs(tasks.list) do
+								if v.name == shell.dir().."/"..e then
+									v.background = true
+									break
+								end
+							end
 						else
 							printError(err)
 						end
@@ -1106,12 +801,18 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, "/bin/"..e)
-						if f then
-							foreground[f.uid] = true
-							tasks = f.next
-						else
+						--f(unpack(args))
+						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args)
+						if not f then
 							printError(err)
+						else
+							for _, a in ipairs(tasks.list) do
+								if a.name == "/bin/"..e then
+									a.background = false
+									break
+								end
+							end
+							tasks.somethingInFG = true
 						end
 					end
 				elseif bg == true then
@@ -1120,11 +821,14 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, nil, nil, nil, nil, nil, nil, nil, nil, args, "/bin/"..e)
+						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args)
 						if f then
-							f['background'] = true
-
-							tasks = f.next
+							for _, v in ipairs(tasks.list) do
+								if v.name == "/bin/"..e then
+									v.background = true
+									break
+								end
+							end
 						else
 							printError(err)
 						end
@@ -1145,6 +849,14 @@ local function cmd()
 						print("Usage: service <start|stop|enable|disable> <name/path> [args]")
 					else
 						sv(args[1], args[2])
+					end
+				elseif e == "ps" then
+					print("UID | Name/Path")
+					for k, v in pairs(tasks.list) do
+						if not v.dead then
+							term.write(tostring(v.uid).." | ")
+							print(tostring(v.name))
+						end
 					end
 				end
 
@@ -1188,17 +900,22 @@ end
 
 --Add the cmd function as the main task, with the parent window
 local maxX, maxY = term.getSize()
-local n, err = thread.new(cmd, nil, nil, maxX, maxY, term.current(), true, 1, 1, {}, "/sys/cmdbak")
+local n, err = thread.new(cmd, getfenv(1), "/sys/cmdbak", tasks)
 if not n then
 	printError(err)
 end
-
---Reload the tasklist
-tasks = n.next
-
---Try to run all tasks, if it fails, it sets to dead, which leads to /vit/alive restarting
+local running = true
+local evt = {}
+while running do
+	local ok = thread.resumeAll(tasks, evt)
+	evt = {os.pullEventRaw()}
+	if ok == false then
+		running = false
+	end
+end
+--[[Try to run all tasks, if it fails, it sets to dead, which leads to /vit/alive restarting
 local ok, err = pcall(thread.runAll, tasks)
 if not ok then
 	printError(err)
 	flag.STATE_DEAD = true
-end
+end]]

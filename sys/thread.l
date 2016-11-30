@@ -42,12 +42,18 @@ function thread.new(p, env, name, tasklist, tArgs)
 	self.task = coroutine.create(self.func)
 	self.dead = false
 	self.name = name
+	self.background = true
+
 	self.uid = uid
 	self.filter = nil
 	--resume/start the coroutine (function/file)
 	--saveArgs is to store the arguments and execute the program after resume is being called the 2nd time
 	function self.resume(args)
 		local fst = args
+		if self.startArgs ~= nil then
+			fst = self.startArgs
+			self.startArgs = nil
+		end
 		local stat = coroutine.status(self.task)
 		if stat == "dead" then self.dead = true end
 		if not self.dead and self.filter == nil or not self.dead and self.filter == fst[1] then
@@ -68,6 +74,7 @@ function thread.new(p, env, name, tasklist, tArgs)
 	end
 	if tArgs ~= nil then
 		env['startArgs'] = tArgs
+		self.startArgs = tArgs
 	end
 	--insert self into tasks (with uid (as string) as key)
 	table.insert(tasklist.list, self)
@@ -108,10 +115,31 @@ end
 function thread.resumeAll(tasklist, tArgs)
 	for k, v in ipairs(tasklist.list) do
 		if not v.dead then
-			local ok, err = v.resume(tArgs)
-			if ok == false then
-				cLinuxPrintError(v.name, err)
-				return false
+			if _G.shell then
+				_G.shell.getRunningProgram = function()
+					return v.name
+				end
+			end
+			if not tasklist.somethingInFG then
+				local ok, err = v.resume(tArgs)
+				if ok == false then
+					cLinuxPrintError(v.name, err)
+					--return false
+				end
+			else
+				if v.background == false then
+					local ok, err = v.resume(tArgs)
+					if ok == false then
+						cLinuxPrintError(v.name, err)
+						--return false
+					end
+					local ok = thread.getStatus(v.name, tasklist)
+					if ok == "dead" then
+						v.background = true
+						tasklist.somethingInFG = false
+						table.remove(tasklist.list, k)
+					end
+				end
 			end
 		end
 	end

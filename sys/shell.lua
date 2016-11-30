@@ -289,7 +289,7 @@ function shell.stopServ(name)
 	return false
 end
 
-
+_G['shell'] = shell
 
 function printError(str)
 	local c = term.getTextColor()

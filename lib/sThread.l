@@ -84,9 +84,9 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, args) -
 		end
 	end
 	self.env = {}
-	
+
 	_copy(_G, self.env)
-	blacklist = {'rawget', 'rawset', 'dofile', 'thread', 'sThread','old'}	--things that shouldn't get added, and extras
+	blacklist = {'rawget', 'rawset', 'dofile', 'sThread','old'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 	setmetatable(self.env, {__index = _G.lib})
 	self.task, err = loadfile(file)

@@ -79,6 +79,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	local tasks = {}
 	tasks['list'] = {}
 	tasks['last_uid'] = 0
+	tasks['somethingInFG'] = false
 
 	--[[while true do
 		local e = read()
