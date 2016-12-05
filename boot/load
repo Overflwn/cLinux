@@ -25,6 +25,10 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		cLinuxPrintError("/sys/thread.l not found...")
 		sleep(2)
 		flag.STATE_DEAD = true
+	elseif not fs.exists("/sys/sThread.l") then
+		cLinuxPrintError("/sys/sThread.l not found...")
+		sleep(2)
+		flag.STATE_DEAD = true
 	end
 
 	print("Loading perm API")
@@ -35,6 +39,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		sleep(1)
 		return
 	end
+	sleep(0.5)
 	print("Loading FS API")
 	local ok, err = loadAPI("/sys/fs.l")
 	if ok == false or _G.fs == nil then
@@ -43,6 +48,7 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		sleep(1)
 		return
 	end
+	sleep(0.5)
 	print("Loading thread API")
 	local ok, err = loadAPI("/sys/thread.l")
 	if ok == false or _G.thread == nil then
@@ -51,6 +57,15 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		sleep(1)
 		return
 	end
+	print("Loading sThread API")
+	local ok, err = loadAPI("/sys/sThread.l")
+	if ok == false or _G.sThread == nil then
+		cLinuxPrintError("[thread.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		return
+	end
+	sleep(0.5)
 	for _, a in ipairs(fs.list("/lib/")) do
 		print("Loading "..a)
 		local ok, err = loadAPI("/lib/"..a)
@@ -59,17 +74,18 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.setTextColor(colors.red)
 			print("["..a.."] "..tostring(err))
 			term.setTextColor(c)
+			sleep(0.5)
 		else
 			local c = term.getTextColor()
 			term.setTextColor(colors.green)
 			term.write("[OK]")
 			term.setTextColor(c)
 			print(" "..a.." loaded!")
-			--sleep(0.5)
+			sleep(0.5)
 		end
 	end
 	print("Finished!")
-
+	sleep(0.5)
 	if _G.lib.os then
 		_G.lib.os['shutdown'] = os.shutdown
 		_G.lib.os['reboot'] = os.reboot
@@ -81,13 +97,6 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	tasks['last_uid'] = 0
 	tasks['somethingInFG'] = false
 
-	--[[while true do
-		local e = read()
-		print(e)
-		if e == "break" then
-			break
-		end
-	end]]
 	local xBox = {}
 
 	for _, a in pairs(_G) do

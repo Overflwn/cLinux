@@ -5,11 +5,20 @@
 	NAME:        /sys/thread.l
 	CATEGORY:    library
 	SET:         Core Libraries I
-	VERSION:     01:alpha0
+	VERSION:     09:beta2
 	DESCRIPTION:
-		Manages the coroutines, used in
-		the TLCO.
-		(This is only locally to the TLCO)
+		Manages coroutines of a GIVEN tasklist
+		The tasklist should look like the following:
+
+		mytasklist = {
+			last_uid = 0,
+			somethingInFG = false,
+			list = {},
+		}
+
+
+
+		Almost every function needs the tasklist to work.
 ]]--
 
 --Define thread table (containing the main functions)
@@ -38,6 +47,44 @@ function thread.new(p, env, name, tasklist, tArgs)
 	local self = {}
 	--set self.function as p, with a new environment
 	setfenv(p, env)
+	local tAPIsLoading = {}
+	function env.os.loadAPI( _sPath )
+			print("Loading ".._sPath)
+			sleep(2)
+	    local sName = fs.getName( _sPath )
+	    if tAPIsLoading[sName] == true then
+	        printError( "API "..sName.." is already being loaded" )
+	        return false
+	    end
+	    tAPIsLoading[sName] = true
+
+	    local tEnv = {}
+	    setmetatable( tEnv, { __index = _G } )
+	    local fnAPI, err = loadfile( _sPath, tEnv )
+	    if fnAPI then
+	        local ok, err = pcall( fnAPI )
+	        if not ok then
+	            printError( err )
+	            tAPIsLoading[sName] = nil
+	            return false
+	        end
+	    else
+	        printError( err )
+	        tAPIsLoading[sName] = nil
+	        return false
+	    end
+
+	    local tAPI = {}
+	    for k,v in pairs( tEnv ) do
+	        if k ~= "_ENV" then
+	            tAPI[k] =  v
+	        end
+	    end
+	    tAPIsLoading[sName] = nil
+			env[sName] = tAPI
+			_G[sName] = tAPI
+	    return true
+	end
 	self.func = p
 	self.task = coroutine.create(self.func)
 	self.dead = false
@@ -78,7 +125,6 @@ function thread.new(p, env, name, tasklist, tArgs)
 	end
 	--insert self into tasks (with uid (as string) as key)
 	table.insert(tasklist.list, self)
-
 	return true
 end
 --resume a specific task (by given name)
@@ -111,6 +157,22 @@ function thread.getStatus(name, tasklist)
 	end
 	return nil
 end
+
+--kill a task, in the given tasklist of course, with the UID as number
+
+function thread.kill(tasklist, uid)
+	--check if the uid is a string, convert to number
+	if type(uid) == "string" then uid = tonumber(uid) end
+	if uid == nil then return end
+	for k, v in pairs(tasklist.list) do
+		if v.uid == uid then
+			tasklist.list[k] = nil
+			return true
+		end
+	end
+	return nil
+end
+
 --resume all tasks, with optionally given arguments/events
 function thread.resumeAll(tasklist, tArgs)
 	for k, v in ipairs(tasklist.list) do

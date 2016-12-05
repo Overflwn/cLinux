@@ -24,10 +24,9 @@ local curPath = "/"
 local maintask = 0
 local thread = sThread
 term.setCursorPos(1,1)
-term.setBackgroundColor(colors.blue)
+term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
 term.clear()
-_put('rednet', lib.rednet)
 --_put('os', lib.os)
 
 --[[
@@ -300,16 +299,20 @@ end
 
 local services = lib.serv.giveList()
 
-if flag.text then
+if flag.text == true then
 	services = {
 	  [ "/sys/cmdbak" ] = "core",
 	  [ "/sys/redn" ] = false,
 	}
 end
 
+
+
 for _, a in pairs(services) do
-	if type(a) == true then
+	if a == true then
 		if _ == "/sys/cmdbak" then
+			_ = _
+		elseif string.find(_, "/", 1, 1) then
 			_ = _
 		else
 			_ = "/etc/services.d/".._

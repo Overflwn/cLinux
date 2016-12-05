@@ -2,12 +2,14 @@
 	cLinux: Ran out of lores... already
 	Made by Piorjade, daelvn
 
-	NAME:        /lib/sThread.l
+	NAME:        /sys/sThread.l
 	CATEGORY:    library
 	SET:         Native Libraries I
 	VERSION:     01:alpha0
 	DESCRIPTION:
-		Manages the coroutines, used in shell.
+		Manages the coroutines, used in shell. (mainly services)
+
+		PLEASE USE /lib/thread.l FOR YOUR PROGRAMS, WAY BETTER
 ]]--
 
 
@@ -89,12 +91,15 @@ function sThread.new(file, uid, fg, width, height, parent, main, lx, ly, args) -
 	blacklist = {'rawget', 'rawset', 'dofile', 'sThread','old'}	--things that shouldn't get added, and extras
 	for k, v in ipairs(blacklist) do self.env[v] = nil end
 	setmetatable(self.env, {__index = _G.lib})
+	if not fs.exists(file) then
+		return false, "File not found."
+	end
 	self.task, err = loadfile(file)
 
 	if not self.task then
 		return false, err
 	end
-	setfenv(self.task, self.env)
+	--setfenv(self.task, self.env)
 	self.thread = coroutine.create(self.task)
 	self.file = tostring(file)
 	self.filter = nil
@@ -202,3 +207,5 @@ function sThread.runAll(tasklist)
 	end
 	return
 end
+
+_put('sThread', sThread)

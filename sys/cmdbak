@@ -592,19 +592,19 @@ local function cmd()
 
 		function kill(uid)
 			--Function to kill a thread
-			local t = tonumber(uid)
-			local ok = thread.kill(t)
+			if tonumber(uid) == 1 then
+				cLinuxPrintError("Core","You can't kill that.")
+				return
+			end
+
+			local ok = thread.kill(tasks, uid)
 
 			if ok then
 				print("Success!")
 			elseif ok == false then
-				if t > 1 then
-					print("No root")
-				else
-					print("You can't kill that.")
-				end
+				print("This shouldn't happen.")
 			elseif ok == nil then
-				print("Error")
+				print("Process not found.")
 			end
 		end
 
@@ -860,16 +860,7 @@ local function cmd()
 					end
 				end
 
-				if sudo then
-					--if sudo was entered, get out of it again
-					local ok, err = lib.perm.permission.reLog()
-					if not ok then
-						printError("There was an error with reLog.")
-						sudo = false
-					else
-						sudo = false
-					end
-				end
+
 			elseif fs.exists(e) == false and #e > 0 then
 				--if any of these above don't exist
 				print("Command not found.")
@@ -877,6 +868,16 @@ local function cmd()
 		else
 			--if the user entered a false directory
 			printError(corruptMessage)
+		end
+		if sudo then
+			--if sudo was entered, get out of it again
+			local ok, err = lib.perm.permission.reLog()
+			if not ok then
+				printError("There was an error with reLog.")
+				sudo = false
+			else
+				sudo = false
+			end
 		end
 	end
 end
