@@ -5,10 +5,11 @@
 1. Replaces CraftOS, using rednet TLCO
 2. Uses a multi-user system
 3. Modified FS API (Forbid normal users from editing in critical folders)
-4.Load (in a kinda custom format) libraries and put them in _G
+4. Load (in a kinda custom format) libraries and put them in _G
 5. 2 hardcoded levels of threadmanagers
   * first: TLCO level, reloads rednet (but doesn't start it) and start /vit/alive and /boot/load --> isolated, user has no control over it
   * second: shell.lua / Service level, reads /etc/services.conf and starts every enabled service listed in there (and of course the core service, which is basically the parent window (it is more complicated than that))
+  * (third): The user-available threadmanager (/sys/thread.l)
 6. CommandLine
   * background processes: run at the same time as the commandline, meaning that sleep() doesn't affect it
   * foreground processes: commandline is paused until the foreground process finishes
@@ -34,6 +35,10 @@
 9. To enable rednet:
 ```
 service enable rednet
+```
+10. (To temporarely start rednet)
+```
+service start /etc/pacman.d/rednet
 ```
 
 #More Information in the [forum post](http://www.computercraft.info/forums2/index.php?/topic/27573-clinux-optional-desktop-enviroment-bye-craftos-kappa/).
