@@ -12,60 +12,13 @@
 		and starts the shell at the end.
 ]]--
 
-if _G['flag'] and _G['flag']['STATE_INIT'] then
-	if not fs.exists("/sys/fs.l") then
-		cLinuxPrintError("/sys/fs.l not found...")
-		sleep(2)
-		flag.STATE_DEAD = true
-	elseif not fs.exists("/sys/perm.l") then
-		cLinuxPrintError("/sys/perm.l not found...")
-		sleep(2)
-		flag.STATE_DEAD = true
-	elseif not fs.exists("/sys/thread.l") then
-		cLinuxPrintError("/sys/thread.l not found...")
-		sleep(2)
-		flag.STATE_DEAD = true
-	elseif not fs.exists("/sys/sThread.l") then
-		cLinuxPrintError("/sys/sThread.l not found...")
-		sleep(2)
-		flag.STATE_DEAD = true
-	end
+--if flag.STATE_INIT ~= true or flag.STATE_INIT == nil then
+--end
 
-	print("Loading perm API")
-	local ok, err = loadAPI("/sys/perm.l")
-	if ok == false or _G.lib.perm == nil then
-		cLinuxPrintError("[perm.l] "..tostring(err))
-		flag.STATE_DEAD = true
-		sleep(1)
-		return
-	end
-	sleep(0.5)
-	print("Loading FS API")
-	local ok, err = loadAPI("/sys/fs.l")
-	if ok == false or _G.fs == nil then
-		cLinuxPrintError("[fs.l] "..tostring(err))
-		flag.STATE_DEAD = true
-		sleep(1)
-		return
-	end
-	sleep(0.5)
-	print("Loading thread API")
-	local ok, err = loadAPI("/sys/thread.l")
-	if ok == false or _G.thread == nil then
-		cLinuxPrintError("[thread.l] "..tostring(err))
-		flag.STATE_DEAD = true
-		sleep(1)
-		return
-	end
-	print("Loading sThread API")
-	local ok, err = loadAPI("/sys/sThread.l")
-	if ok == false or _G.sThread == nil then
-		cLinuxPrintError("[thread.l] "..tostring(err))
-		flag.STATE_DEAD = true
-		sleep(1)
-		return
-	end
-	sleep(0.5)
+_G['old'] = {}
+_G.old['fs'] = fs
+
+if _G['flag'] and _G['flag']['STATE_INIT'] then
 	for _, a in ipairs(fs.list("/lib/")) do
 		print("Loading "..a)
 		local ok, err = loadAPI("/lib/"..a)
@@ -74,7 +27,9 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			term.setTextColor(colors.red)
 			print("["..a.."] "..tostring(err))
 			term.setTextColor(c)
-			sleep(0.5)
+
+			flag.STATE_DEAD = true
+			break
 		else
 			local c = term.getTextColor()
 			term.setTextColor(colors.green)
@@ -84,41 +39,23 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 			sleep(0.5)
 		end
 	end
-	print("Finished!")
-	sleep(0.5)
+
+
 	if _G.lib.os then
 		_G.lib.os['shutdown'] = os.shutdown
 		_G.lib.os['reboot'] = os.reboot
 	end
-
-	--initiate shell-level-tasklist
-	local tasks = {}
-	tasks['list'] = {}
-	tasks['last_uid'] = 0
-	tasks['somethingInFG'] = false
-
 	local xBox = {}
 
 	for _, a in pairs(_G) do
 		xBox[_] = a
 	end
-	--xBox._G = xBox
-	--setmetatable(xBox, {__index = xBox.lib})
-	--xBox._G = xBox
-	local x, err = thread.new("/sys/shell.lua", xBox, "Shell", tasks)
+	local x, err = thread.new("/sys/shell.lua", 1)
 	if x == false then
 		cLinuxPrintError("Shell", err)
 		sleep(2)
 	end
-	local running = true
-	local evt = {}
-	while running do
-		local ok = thread.resumeAll(tasks, evt)
-		evt = {os.pullEventRaw()}
-		if ok == false then
-			running = false
-		end
-	end
+	thread.runAll(x.next)
 	flag.STATE_DEAD = true
 else
 	term.clear(1,1)

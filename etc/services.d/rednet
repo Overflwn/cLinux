@@ -1,2 +1,1 @@
-os.loadAPI("/sys/rednet")
 rednet.run()

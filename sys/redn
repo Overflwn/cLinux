@@ -1,0 +1,3 @@
+while true do
+	local ok, err = pcall(rednet.run)
+end

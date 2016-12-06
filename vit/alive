@@ -1,12 +1,5 @@
 -- Keep the TLCO alive
 -- Create a coroutine with alive, and execute the other.
-
---catch the ground-tasklist
-
-local tasks = {}
-for k, v in pairs(startArgs) do
-	tasks[k] = v
-end
 local function drawBlueScreen()
 	if flag.STATE_CRASHED then
 		term.setCursorPos(1,1)
@@ -49,7 +42,7 @@ end
 
 
 while true do
-	local ok, err = thread.getStatus("Core", tasks)
+	local ok, err = thread.getStatus(toplevel, 2)
 	if ok == "dead" or flag.STATE_DEAD or ok == nil then
 		term.setTextColor(colors.red)
 		print("/vit/alive : STATE_DEAD detected. Restarting...")

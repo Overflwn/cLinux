@@ -4,17 +4,16 @@
 	cLinux : Lore of the Day!
 	Made by Piorjade, daelvn
 
-	NAME:        /sys/perm.l
+	NAME:        /lib/perm.l
 	CATEGORY:    Library
 	SET:         Core Library
-	VERSION:     02:alpha6
+	VERSION:     02:alpha3
 	DESCRIPTION:
 		This script manages users and their permissions.
 		Most of these functions are selfexplaining.
 ]]--
 
-local old = {}
-old['fs'] = fs
+
 local sha = os.loadAPI("/lib/sha.l")
 local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 local perm = {}
@@ -24,10 +23,9 @@ local oldname = ""
 local oldpassword = password
 local _users = nil
 
-
---Initiate system
 if _users == nil then
 	_users = {}
+	print("No users")
 	if fs.exists("/sys/usrData") then
 		local file = old.fs.open("/sys/usrData", "r")
 		local inhalt = file.readAll()
@@ -40,7 +38,6 @@ if _users == nil then
 	end
 end
 
---Hash a password with the given salt and return the hashed password, open for all programs
 function hashPw(p, salt)
 	local str = pbkdf2(p, salt, 10):toHex()
 	return tostring(str)
@@ -50,30 +47,26 @@ _put('hashPw', hashPw)
 
 local usrs = {}
 
---Return the list of every registered user
 function usrs.getList()
 	local inhalt = {}
+
 	for k, v in pairs(_users) do
 		table.insert(inhalt, k)
 	end
 	return inhalt
 end
 
---set the current user
 local function setUsr(n, p)
 	name = n
 	password = p
 end
 
-
---self explaining
 function usrs.addUser(nm, pw)
 	if _users[nm] or nm == "root" or fs.exists("/home/"..nm) then return false, "exists" end
 	local i = usrs.getList()
 	local oldname = name
 	local oldpw = password
 	if #i < 1 then
-		--first run
 		local n = "root"
 		local file = fs.open("/sys/.rootpw", "r")
 		local p = file.readLine()
@@ -91,7 +84,7 @@ function usrs.addUser(nm, pw)
 end
 
 function usrs.checkRootPw(p)
-	local file = old.fs.open("/sys/.rootpw", "r")
+	local file = old.fs.open("/sys/rootpw", "r")
 	local pw = file.readLine()
 	file.close()
 	if p == pw then
@@ -200,17 +193,10 @@ function permission.check(f)
 	return nil
 end
 
-function permission.saveOld()
-	oldname = name
-	oldpassword = password
-	return
-end
-
-function permission.login(n, p, nohash)
+function permission.login(n, p)
 	if n == nil or p == nil then return nil end
-	if not nohash then
-		p = hashPw(p, n)
-	end
+	p = hashPw(p, n)
+
 	local file = old.fs.open("/sys/usrData", "r")
 	local inhalt = file.readAll()
 	file.close()
@@ -228,6 +214,8 @@ function permission.login(n, p, nohash)
 		local rpw = file.readLine()
 		file.close()
 		if p == rpw then
+			oldname = name
+			oldpassword = password
 			name = "root"
 			password = p
 			return true
@@ -250,10 +238,9 @@ function permission.reLog()
 end
 
 function permission.getCurrentUser()
-	return name, password
+	return name
 end
 
 perm['permission'] = permission
 perm['usrs'] = usrs
-perm['hashPw'] = hashPw
 _putLib('perm', perm)
