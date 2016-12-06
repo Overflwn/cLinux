@@ -1,5 +1,4 @@
 
-
 --[[
 	cLinux : Lore of the Day!
 	Made by Piorjade, daelvn
@@ -23,13 +22,12 @@ end]]
 local tasks = {}
 local curPath = "/"
 local maintask = 0
-thread = sThread
+local thread = sThread
 term.setCursorPos(1,1)
-term.setBackgroundColor(colors.blue)
+term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
 term.clear()
-_put('rednet', lib.rednet)
-_put('os', lib.os)
+--_put('os', lib.os)
 
 --[[
 						##EXPERIMENTAL##
@@ -290,7 +288,7 @@ function shell.stopServ(name)
 	return false
 end
 
-
+_G['shell'] = shell
 
 function printError(str)
 	local c = term.getTextColor()
@@ -301,16 +299,20 @@ end
 
 local services = lib.serv.giveList()
 
-if flag.text then
+if flag.text == true then
 	services = {
 	  [ "/sys/cmdbak" ] = "core",
 	  [ "/sys/redn" ] = false,
 	}
 end
 
+
+
 for _, a in pairs(services) do
-	if type(a) == true then
+	if a == true then
 		if _ == "/sys/cmdbak" then
+			_ = _
+		elseif string.find(_, "/", 1, 1) then
 			_ = _
 		else
 			_ = "/etc/services.d/".._
@@ -361,9 +363,6 @@ for _, a in pairs(services) do
 		end
 	end
 end
-
-
-
 
 
 

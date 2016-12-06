@@ -10,6 +10,8 @@
 		Manages files & folders.
 		Most of these functions are selfexplaining.
 ]]--
+local old = {}
+old['fs'] = fs
 local _fs = {}
 local forbidden = {"/boot", "/vit", "/bin", "/startup", "/sys"}
 
