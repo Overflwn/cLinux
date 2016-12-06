@@ -91,7 +91,7 @@ function usrs.addUser(nm, pw)
 end
 
 function usrs.checkRootPw(p)
-	local file = old.fs.open("/sys/rootpw", "r")
+	local file = old.fs.open("/sys/.rootpw", "r")
 	local pw = file.readLine()
 	file.close()
 	if p == pw then
@@ -200,10 +200,17 @@ function permission.check(f)
 	return nil
 end
 
-function permission.login(n, p)
-	if n == nil or p == nil then return nil end
-	p = hashPw(p, n)
+function permission.saveOld()
+	oldname = name
+	oldpassword = password
+	return
+end
 
+function permission.login(n, p, nohash)
+	if n == nil or p == nil then return nil end
+	if not nohash then
+		p = hashPw(p, n)
+	end
 	local file = old.fs.open("/sys/usrData", "r")
 	local inhalt = file.readAll()
 	file.close()
@@ -221,8 +228,6 @@ function permission.login(n, p)
 		local rpw = file.readLine()
 		file.close()
 		if p == rpw then
-			oldname = name
-			oldpassword = password
 			name = "root"
 			password = p
 			return true
@@ -245,9 +250,10 @@ function permission.reLog()
 end
 
 function permission.getCurrentUser()
-	return name
+	return name, password
 end
 
 perm['permission'] = permission
 perm['usrs'] = usrs
+perm['hashPw'] = hashPw
 _putLib('perm', perm)

@@ -9,13 +9,6 @@
 	DESCRIPTION:
 		This script is the commandline and is run as a service.
 ]]--
-
-
---[[
-	Resetting taskmanager on cmd level
-]]
-print(type(shell))
-sleep(2)
 --variables and tables
 tasks = {
 	list = {},
@@ -36,6 +29,7 @@ local lastx = 1
 local lasty = 1
 local foreground = {}
 local sudo = false
+local sudopw = ""
 --functions
 
 
@@ -472,12 +466,6 @@ local function cmd()
 	while true do
 		--start commandline loop
 
-		--[[get any error by a task and print it
-		local ok, err = thread.getError()
-		if ok ~= "noError" then
-			printError(err)
-		end]]
-
 		--Print the current user and the path (example: test@/bin> _ )
 		local cPath = shell.dir()
 		oldTerm = term.current()
@@ -508,10 +496,12 @@ local function cmd()
 			--'sudo', ask for root password
 			term.write("Enter root password: ")
 			local p = readPw()
-			local ok = lib.perm.permission.login("root", p)
+			p = lib.perm.hashPw(p, "root")
+			local ok = lib.perm.usrs.checkRootPw(p)
 			if not ok then
 				printError("Wrong password.")
 			elseif ok == true then
+				sudopw = p
 				sudo = true
 			end
 		end
@@ -711,6 +701,16 @@ local function cmd()
 		setmetatable(newEnv, {})
 		--Start executing commands
 		if not corruptPath then
+			local dat = {
+				name = "",
+				password = "",
+			}
+			if sudo then
+				dat.name  = "root"
+				dat.password = sudopw
+			else
+				dat.name, dat.password = lib.perm.permission.getCurrentUser
+			end
 			if fs.exists(e) and #e > 0 and not m then
 				--if the user put a full path in and it exists
 				if bg == false then
@@ -719,8 +719,8 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						--f(unpack(args))
-						local f, err = thread.new(f, newEnv, e, tasks, args)
+
+						local f, err = thread.new(f, newEnv, e, tasks, args, dat)
 						if not f then
 							printError(err)
 						else
@@ -739,7 +739,7 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, newEnv, e, tasks, args)
+						local f, err = thread.new(f, newEnv, e, tasks, args, dat)
 						if f then
 							for _, v in ipairs(tasks.list) do
 								if v.name == e then
@@ -761,7 +761,7 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args)
+						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args, dat)
 						if not f then
 							printError(err)
 						else
@@ -780,7 +780,7 @@ local function cmd()
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args)
+						local f, err = thread.new(f, newEnv, shell.dir().."/"..e, tasks, args, dat)
 						if f then
 							for _, v in ipairs(tasks.list) do
 								if v.name == shell.dir().."/"..e then
@@ -802,7 +802,7 @@ local function cmd()
 						printError(err)
 					else
 						--f(unpack(args))
-						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args)
+						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args, dat)
 						if not f then
 							printError(err)
 						else
@@ -816,12 +816,13 @@ local function cmd()
 						end
 					end
 				elseif bg == true then
-					--start in background mode
+
+					--start in background mode, if NOT sudo! sudo would mess things up
 					local f, err = loadfile("/bin/"..e)
 					if not f then
 						printError(err)
 					else
-						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args)
+						local f, err = thread.new(f, newEnv, "/bin/"..e, tasks, args, dat)
 						if f then
 							for _, v in ipairs(tasks.list) do
 								if v.name == "/bin/"..e then
@@ -860,25 +861,19 @@ local function cmd()
 					end
 				end
 
-
 			elseif fs.exists(e) == false and #e > 0 then
 				--if any of these above don't exist
 				print("Command not found.")
+			end
+			if sudo then
+				--if sudo was entered, get out of it again
+				sudo = false
 			end
 		else
 			--if the user entered a false directory
 			printError(corruptMessage)
 		end
-		if sudo then
-			--if sudo was entered, get out of it again
-			local ok, err = lib.perm.permission.reLog()
-			if not ok then
-				printError("There was an error with reLog.")
-				sudo = false
-			else
-				sudo = false
-			end
-		end
+
 	end
 end
 

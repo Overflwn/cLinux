@@ -24,7 +24,7 @@
 --Define thread table (containing the main functions)
 local thread = {}
 --Function to create a new thread
-function thread.new(p, env, name, tasklist, tArgs)
+function thread.new(p, env, name, tasklist, tArgs, logfunc)
 	if not p then return end
 	if not env then return end
 	if not name then
@@ -91,6 +91,13 @@ function thread.new(p, env, name, tasklist, tArgs)
 	self.name = name
 	self.background = true
 
+
+
+	--get the current user and save his data
+	if logfunc ~= nil then
+		self.userName, self.userPassword = logfunc.name, logfunc.password
+	end
+
 	self.uid = uid
 	self.filter = nil
 	--resume/start the coroutine (function/file)
@@ -104,7 +111,14 @@ function thread.new(p, env, name, tasklist, tArgs)
 		local stat = coroutine.status(self.task)
 		if stat == "dead" then self.dead = true end
 		if not self.dead and self.filter == nil or not self.dead and self.filter == fst[1] then
+			if self.userName ~= nil then
+				lib.perm.permission.saveOld()
+				lib.perm.permission.login(self.userName, self.userPassword, true)
+			end
 			local ok, err = coroutine.resume(self.task, table.unpack(fst))
+			if self.userName ~= nil then
+				lib.perm.permission.reLog()
+			end
 			if ok then
 				local stat = coroutine.status(self.task)
 				if stat == "dead" then
@@ -123,9 +137,9 @@ function thread.new(p, env, name, tasklist, tArgs)
 		env['startArgs'] = tArgs
 		self.startArgs = tArgs
 	end
-	--insert self into tasks (with uid (as string) as key)
+	--insert self into tasks
 	table.insert(tasklist.list, self)
-	return true
+	return true, uid
 end
 --resume a specific task (by given name)
 function thread.resume(name, tasklist, ...)
