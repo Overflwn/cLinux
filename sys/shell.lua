@@ -92,15 +92,17 @@ function shell.dir()
 end
 function shell.setDir(p)
 	if fs.exists(p) and fs.isDir(p) then
-		local i, j = string.find(p, "/")
-		if i == 1 then
+		local i, j = string.find(p, "/", 1, 1)
+		if not string.find(p, "/", #p) then p = p.."/" end
+		if i then
 			curPath = p
 		else
 			curPath = "/"..p
 		end
 		return
-	elseif fs.exists(curPath.."/"..p) and fs.isDir(curPath.."/"..p) then
-		curPath = curPath.."/"..p
+	elseif fs.exists(curPath..p) and fs.isDir(curPath.."/"..p) then
+		curPath = curPath..p
+		if not string.find(curPath, "/", #curPath) then curPath = curPath.."/" end
 		return
 	elseif fs.exists(p) == false or fs.isDir(p) == false then
 		return false

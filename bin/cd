@@ -13,7 +13,7 @@
 
 local tArgs = {...}
 
-if #tArgs < 1 or #tArgs > 1 then
+if #tArgs < 1 or #tArgs > 1 or tArgs[1] == "." then
 	print("Usage:")
 	print("		cd <path>")
 else

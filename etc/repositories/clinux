@@ -35,11 +35,20 @@ name = updater
 	size = 4350
 end
 
-name = fsExpose
+name = fseapi
 	type = raw
-		url = http://pastebin.com/raw/93ERVyeQ
+		url = http://pastebin.com/raw/8JRrW0Va
+		filename = fsEAPI
+	dependencies = none
+	version = 1.0
+	size = 4350
+end
+
+name = fsexpose
+	type = raw
+		url = http://pastebin.com/raw/Wqp7RnVh
 		filename = fsexpose
 	dependencies = none
-	version = 2.3
+	version = 2.5
 	size = 18195
 end

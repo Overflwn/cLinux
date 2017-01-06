@@ -197,7 +197,7 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
 		term.write("@")
 		term.setTextColor(colors.blue)
 		local cUser = lib.perm.permission.getCurrentUser()
-		local i, j = string.find(cPath, "/home/"..cUser)
+		local i, j = string.find(cPath, "/home/"..cUser.."/")
 		if i==1 then
 			cPath = "~/"..string.sub(cPath, j+1, #cPath)
 		end
@@ -476,7 +476,7 @@ local function cmd()
 		term.setTextColor(colors.blue)
 
 		--if the user is in his home directory, write ~ instead
-		local i, j = string.find(cPath, "/home/"..lib.perm.permission.getCurrentUser())
+		local i, j = string.find(cPath, "/home/"..lib.perm.permission.getCurrentUser().."/")
 		if i == 1 then
 			cPath = "~/"..string.sub(cPath, j+1)
 		end
