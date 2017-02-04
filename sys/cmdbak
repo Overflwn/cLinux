@@ -16,6 +16,19 @@ tasks = {
 	somethingInFG = false,
 }
 
+_CONTROL = {
+	colors = {
+		mainBg = colors.black,
+		mainFg = colors.white,
+		userBg = colors.black,
+		userFg = colors.yellow,
+		middleBg = colors.black,
+		middleFg = colors.white,
+		pathBg = colors.black,
+		pathFg = colors.blue,
+	}
+}
+
 local errors = {
 	ok = "noError",
 	err = nil,
@@ -191,11 +204,14 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
 		local x, y = term.getCursorPos()
 		term.setCursorPos(1, y)
 		local cPath = shell.dir()
-		term.setTextColor(colors.yellow)
+		term.setBackgroundColor(_CONTROL.colors.userBg)
+		term.setTextColor(_CONTROL.colors.userFg)
 		term.write(lib.perm.permission.getCurrentUser())
-		term.setTextColor(colors.lime)
+		term.setBackgroundColor(_CONTROL.colors.middleBg)
+		term.setTextColor(_CONTROL.colors.middleFg)
 		term.write("@")
-		term.setTextColor(colors.blue)
+		term.setBackgroundColor(_CONTROL.colors.pathBg)
+		term.setTextColor(_CONTROL.colors.pathFg)
 		local cUser = lib.perm.permission.getCurrentUser()
 		local i, j = string.find(cPath, "/home/"..cUser.."/")
 		if i==1 then
@@ -203,7 +219,8 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
 		end
 		term.write(cPath.."> ")
 		local all = lib.perm.permission.getCurrentUser().."@"..cPath.."> "
-		term.setTextColor(colors.white)
+		term.setBackgroundColor(_CONTROL.colors.mainBg)
+		term.setTextColor(_CONTROL.colors.mainFg)
 		local nx, ny = term.getCursorPos()
 		term.setCursorPos(x, y)
 		sx = nx
@@ -452,7 +469,7 @@ local function readcmd( _sReplaceChar, _tHistory, _fnComplete )		--Modified read
 end
 
 local function cmd()
-
+	local _aliases = {}
 --[[
 	Basically the whole terminal
 ]]
@@ -463,17 +480,51 @@ local function cmd()
 	--Get the name of the logged in user and set the directory
 	local cUser = lib.perm.permission.getCurrentUser()
 	shell.setDir("/home/"..cUser)
+
+	--read .bashcol
+	if fs.exists("/home/"..cUser.."/.bashcol") then
+		local file, err = fs.open("/home/"..cUser.."/.bashcol", "r")
+		if not file then
+			cLinuxPrintError(".bashcol", err)
+		else
+			local t = file.readAll()
+			t = textutils.unserialize(t)
+			file.close()
+			for each, color in pairs(t) do
+				_CONTROL.colors[each] = color
+			end
+		end
+	end
+
+	--set aliases
+	if fs.exists("/home/"..cUser.."/.aliases") then
+		local file, err = fs.open("/home/"..cUser.."/.aliases", "r")
+		if not file then
+			cLinuxPrintError(".aliases", err)
+		else
+			local t = file.readAll()
+			t = textutils.unserialize(t)
+			file.close()
+			for each, alias in pairs(t) do
+				_aliases[each] = alias
+			end
+		end
+	end
+
 	while true do
 		--start commandline loop
 
 		--Print the current user and the path (example: test@/bin> _ )
 		local cPath = shell.dir()
 		oldTerm = term.current()
-		term.setTextColor(colors.yellow)
+		term.setBackgroundColor(_CONTROL.colors.userBg)
+		term.setTextColor(_CONTROL.colors.userFg)
 		term.write(lib.perm.permission.getCurrentUser())
-		term.setTextColor(colors.lime)
+		term.setBackgroundColor(_CONTROL.colors.middleBg)
+		term.setTextColor(_CONTROL.colors.middleFg)
 		term.write("@")
-		term.setTextColor(colors.blue)
+		term.setBackgroundColor(_CONTROL.colors.pathBg)
+		term.setTextColor(_CONTROL.colors.pathFg)
 
 		--if the user is in his home directory, write ~ instead
 		local i, j = string.find(cPath, "/home/"..lib.perm.permission.getCurrentUser().."/")
@@ -481,7 +532,8 @@ local function cmd()
 			cPath = "~/"..string.sub(cPath, j+1)
 		end
 		term.write(cPath.."> ")
-		term.setTextColor(colors.white)
+		term.setBackgroundColor(_CONTROL.colors.mainBg)
+		term.setTextColor(_CONTROL.colors.mainFg)
 
 		--Start reading the command
 		local e = readcmd( nil, {}, shell.complete )
@@ -660,6 +712,10 @@ local function cmd()
 			end
 		end
 
+		--replace the command with alias
+		if _aliases[e] then
+			e = _aliases[e]
+		end
 		--Start checking for false directory input
 		local cPath = shell.dir()
 		local i, j = string.find(e, "/")
@@ -699,6 +755,9 @@ local function cmd()
 		end
 		newEnv['_G'] = newEnv
 		setmetatable(newEnv, {})
+
+
+
 		--Start executing commands
 		if not corruptPath then
 			local dat = {
