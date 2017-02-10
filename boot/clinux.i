@@ -210,7 +210,7 @@ _G.printError = function()
 		tasks['somethingInFG'] = false
 
 
-
+		term.clearLine() -- cLinux#10
 		print("Loading core")
 		sleep(0.5)
 		local ok, err = thread.new("/boot/load", newenv, "Core", tasks)
