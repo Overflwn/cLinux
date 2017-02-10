@@ -30,7 +30,7 @@ else
 			i, j = string.find(string.sub(p, j+1), "/")
 		end
 		if i then
-			p = string.sub(p, i+1, #p)
+			p = string.sub(p, i+2, #p)
 		end
 		p = string.reverse(p)
 		local ok = shell.setDir(p)
