@@ -35,7 +35,7 @@ local function m(d)
 	if falseDir == false then
 
 
-		local path = currentDir.."/"..d
+		local path = currentDir..d
 		local a, b = string.find(d, "/")
 		if a == 1 then
 			path = d
@@ -55,10 +55,20 @@ local function m(d)
 			term.setTextColor(colors.red)
 			print("You have no privileges, try 'sudo'.")
 			term.setTextColor(c)
-		elseif a == "error" then
+		elseif a == "error with permission" then
 			local c = term.getTextColor()
 			term.setTextColor(colors.red)
-			print("An error occured.")
+			print("An error occured (permission).")
+			term.setTextColor(c)
+		elseif a == "error: //" then
+			local c = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("An error occured (invalid path, "..path..").")
+			term.setTextColor(c)
+		elseif a == "error: '../'" then
+			local c = term.getTextColor()
+			term.setTextColor(colors.red)
+			print("An error occured (../).")
 			term.setTextColor(c)
 		else
 			return true

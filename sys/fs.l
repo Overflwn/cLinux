@@ -59,13 +59,13 @@ function _fs.makeDir(p)
 	local i, j = string.find(p, "[..]/")
 
 	if i then
-		return "error"
+		return "error: '../'"
 	end
 
 	local i, j = string.find(p, "//")
 
 	if i then
-		return	"error"
+		return	"error: //"
 	end
 
 	local i, j = string.find(p, "/")
@@ -81,7 +81,7 @@ function _fs.makeDir(p)
 	elseif wx == "x" then
 		return "noPermission"
 	else
-		return	"error"
+		return	"error with permission"
 	end
 end
 

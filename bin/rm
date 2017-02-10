@@ -6,14 +6,14 @@
 	CATEGORY:    Binary
 	SET:         Core Binary
 	VERSION:     01:alpha0
-	DESCRIPTION: 
+	DESCRIPTION:
 		This program deletes a specified file in the specified path / in the
 		current directory.
 ]]--
 
 local function del(d)
 	local r = false
-	local currentDir = shell.dir().."/"
+	local currentDir = shell.dir()
 	local falseDir = false
 	local inhome = true
 	local currentUsr = lib.perm.permission.getCurrentUser()
@@ -31,9 +31,9 @@ local function del(d)
 	if r == false and a == nil then
 		inhome = false
 	end
-	
+
 	if falseDir == false then
-		
+
 		local path = currentDir..d
 		local a, b = string.find(d, "/")
 		if a == 1 then

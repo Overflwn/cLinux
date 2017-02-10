@@ -537,7 +537,7 @@ local function cmd()
 
 		--Start reading the command
 		local e = readcmd( nil, {}, shell.complete )
-
+		--local e = readcmd( nil, {})
 		--Start searching for 'sudo' and 'bg', also check if the user put false directories in
 		local corruptPath = false
 		local corruptMessage = ""
@@ -811,7 +811,8 @@ local function cmd()
 						end
 					end
 				end
-			elseif fs.exists(shell.dir().."/"..e) and #e > 0 and not m then
+			elseif fs.exists(shell.dir()..e) and #e > 0 and not m then
+				print(shell.dir()..e)
 				--if the file exists in the current directory
 				if bg == false then
 					--start in foreground mode

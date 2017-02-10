@@ -26,7 +26,11 @@ local function listFiles(dir)
 	local folders = {}
 	local raw = {}
 
-	raw = fs.list(dir)
+	raw, err = fs.list(dir)
+	if not raw then
+		printError(err)
+		return
+	end
 	for _, a in ipairs(raw) do
 		local c, d = string.find(a, "[.]")
 		if c ~= 1 or c == nil then
