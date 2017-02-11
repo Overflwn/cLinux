@@ -1,0 +1,4 @@
+--[[
+  Basic reboot program
+]]
+os.reboot()

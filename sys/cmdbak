@@ -723,7 +723,7 @@ local function cmd()
 			e = e
 		else
 			if not fs.exists("/bin/"..e) then
-				e = cPath.."/"..e
+				e = cPath..e
 			end
 		end
 		local i, j = string.find(e, "//")

@@ -1,0 +1,4 @@
+--[[
+  Basic shutdown program
+]]
+os.shutdown()
