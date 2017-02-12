@@ -1,0 +1,36 @@
+--[[
+    Basic cp program
+]]
+local invalidPath = false
+local tArgs = {...}
+
+local function cp(d1, d2)
+  local ok = fs.copy(d1, d2)
+  if ok == "noPermission" then
+    return false
+  else
+    return true
+  end
+end
+
+for each, arg in ipairs(tArgs) do
+  if string.find(arg, "%.%.") then
+    invalidPath = true
+  end
+end
+
+if #tArgs == 2 and fs.exists(tArgs[1]) and not fs.exists(tArgs[2]) and not invalidPath then
+  local ok = cp(tArgs[1], tArgs[2])
+  if not ok then
+    printError("You have no privileges, try 'sudo'")
+  end
+elseif #tArgs == 2 and not fs.exists(tArgs[1]) and not invalidPath then
+  printError("File does not exist.")
+elseif #tArgs == 2 and fs.exists(tArgs[1]) and fs.exists(tArgs[2]) and not invalidPath then
+  printError("File already exists.")
+elseif not invalidPath then
+  print("Usage:")
+  print("   <path> <destination>")
+else
+  printError("Use full paths!")
+end
