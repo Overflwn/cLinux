@@ -603,7 +603,7 @@ local function cmd()
 			arg = ""
 		else
 			repeat
-				local i, j = string.find(arg, " ")
+				local i, j = string.find(arg, "%s")
 				if i ~= nil then
 					local a = string.sub(arg, 1, i-1)
 					local x, y = string.find(a, "~/")
