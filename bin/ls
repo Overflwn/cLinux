@@ -143,7 +143,7 @@ local function listFiles(dir)
 		end
 	end
 	term.setTextColor(col)
-	print("") --This somehow fixed it
+ print("")
 end
 
 local tArgs = {...}

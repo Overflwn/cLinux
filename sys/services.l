@@ -90,7 +90,11 @@ function serv.set(k, bool)
 end
 
 function serv.giveList()
-	return list
+	local l = {}
+	for each, val in pairs(list) do
+		l[each] = val
+	end
+	return l
 end
 
 _putLib('serv', serv)

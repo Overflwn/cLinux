@@ -29,6 +29,10 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 		cLinuxPrintError("/sys/sThread.l not found...")
 		sleep(2)
 		flag.STATE_DEAD = true
+	elseif not fs.exists("/sys/services.l") then
+		cLinuxPrintError("/sys/services.l not found...")
+		sleep(2)
+		flag.STATE_DEAD = true
 	end
 
 	print("Loading perm API")
@@ -61,6 +65,15 @@ if _G['flag'] and _G['flag']['STATE_INIT'] then
 	local ok, err = loadAPI("/sys/sThread.l")
 	if ok == false or _G.sThread == nil then
 		cLinuxPrintError("[thread.l] "..tostring(err))
+		flag.STATE_DEAD = true
+		sleep(1)
+		return
+	end
+	sleep(0.5)
+	print("Loading services API")
+	local ok, err = loadAPI("/sys/services.l")
+	if ok == false or _G.sThread == nil then
+		cLinuxPrintError("[services.l] "..tostring(err))
 		flag.STATE_DEAD = true
 		sleep(1)
 		return
