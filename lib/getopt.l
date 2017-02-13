@@ -44,11 +44,11 @@ end
 local nonOptions = 0
 local function permute(args, index)
 	local temp = args[index]
-  if #args > 1 then
-	  for i=index,#args-1 do
-		  args[i] = args[i+1]
-	  end
-  end
+	if #args > 1 then
+		for i=index,#args-1 do
+			args[i] = args[i+1]
+		end
+	end
 	args[#args] = temp
 	nonOptions = nonOptions + 1
 end
@@ -81,25 +81,25 @@ function getopt.std(args, optstr)
 
 	-- This is indeed an infinite loop
 	while true do
-    c = string.sub(args[getopt.optind], _nextc, _nextc)
-    if _nextc == 1 and c ~= "-" or args[getopt.optind] == "-" then
-      if posixly_correct or getopt.optind + nonOptions > #args then
+		c = string.sub(args[getopt.optind], _nextc, _nextc)
+		if _nextc == 1 and c ~= "-" or args[getopt.optind] == "-" then
+			if posixly_correct or getopt.optind + nonOptions > #args then
 				return -1
 			end
-      if nonopt_code1 then
-        getopt.optarg = args[getopt.optind]
-        getopt.optind = getopt.optind + 1
-        return string.char(1)
-      else
-			  permute(args, getopt.optind)
-      end
+			if nonopt_code1 then
+				getopt.optarg = args[getopt.optind]
+				getopt.optind = getopt.optind + 1
+				return string.char(1)
+			else
+				permute(args, getopt.optind)
+			end
 		else
-      break
-    end
+			break
+		end
 	end
 
-  local changedIndex = false
-  _nextc = _nextc + 1
+	local changedIndex = false
+	_nextc = _nextc + 1
 	if _nextc > #(args[getopt.optind]) then
 		getopt.optind = getopt.optind + 1
 		_nextc = 1
@@ -111,30 +111,30 @@ function getopt.std(args, optstr)
 	c = string.sub(args[getopt.optind], _nextc, _nextc)
 
 	if _nextc ~= 1 or (_nextc == 1 and c == "-") then
-    if posixly_correct and c ~= "-" and _nextc == 1 then
-      return -1
-    end
+		if posixly_correct and c ~= "-" and _nextc == 1 then
+			return -1
+		end
 
 		if c == "-" then
-      if _nextc == 1 and changedIndex == true then
-        -- Jumped to the next argument, rereading first available command
-        changedIndex = false
-        _nextc = _nextc + 1
-        if _nextc > #(args[getopt.optind]) then
-	        getopt.optind = getopt.optind + 1
-	        _nextc = 1
-	        changedIndex = true
-        end
-        if getopt.optind + nonOptions > #args then
-	        return -1
-        end
-        c = string.sub(args[getopt.optind], _nextc, _nextc)
-      else
-			  return -1
-      end
+			if _nextc == 1 and changedIndex == true then
+				-- Jumped to the next argument, rereading first available command
+				changedIndex = false
+				_nextc = _nextc + 1
+				if _nextc > #(args[getopt.optind]) then
+					getopt.optind = getopt.optind + 1
+					_nextc = 1
+					changedIndex = true
+				end
+				if getopt.optind + nonOptions > #args then
+					return -1
+				end
+				c = string.sub(args[getopt.optind], _nextc, _nextc)
+			else
+				return -1
+			end
 		else
-      changedIndex = false
-    end
+			changedIndex = false
+		end
 
 		local index = -1
 		for i, v in ipairs(opts) do
@@ -145,37 +145,37 @@ function getopt.std(args, optstr)
 		end
 
 		if index == -1 then
-      if nonopt_code1 then
-        getopt.optarg = string.sub(args[getopt.optind], _nextc)
-        getopt.optind = getopt.optind + 1
-        return string.char(1)
-      else
-			  getopt.optopt = c
-			  if getopt.opterr ~= 0 then
-				  printError("getopt: \""..c.."\" isn't an option.")
-			  end
-			  return erropt
-      end
+			if nonopt_code1 then
+				getopt.optarg = string.sub(args[getopt.optind], _nextc)
+				getopt.optind = getopt.optind + 1
+				return string.char(1)
+			else
+				getopt.optopt = c
+				if getopt.opterr ~= 0 then
+					printError("getopt: \""..c.."\" isn't an option.")
+				end
+				return erropt
+			end
 		end
 
 		if opts[index].has_arg == 1 then
 			local substr = string.sub(args[getopt.optind], _nextc+1)
 			if substr == "" or substr == nil then
-        if args[getopt.optind+1] ~= nil then
-          substr = args[getopt.optind+1]
-			    getopt.optind = getopt.optind + 1
-        else
-				  getopt.optopt = c
-				  if getopt.opterr ~= 0 then
-					  printError("getopt: \""..c.."\" mandatory argument missing.")
-				  end
-				  return erropt
-        end
+				if args[getopt.optind+1] ~= nil then
+					substr = args[getopt.optind+1]
+					getopt.optind = getopt.optind + 1
+				else
+					getopt.optopt = c
+					if getopt.opterr ~= 0 then
+						printError("getopt: \""..c.."\" mandatory argument missing.")
+					end
+					return erropt
+				end
 			end
 
 			getopt.optarg = substr
 			getopt.optind = getopt.optind + 1
-      _nextc = 1
+			_nextc = 1
 			return c
 		end
 		if opts[index].has_arg == 2 then
@@ -189,13 +189,13 @@ function getopt.std(args, optstr)
 
 			getopt.optarg = substr
 			getopt.optind = getopt.optind + 1
-      _nextc = 1
+			_nextc = 1
 			return c
 		end
 
 		getopt.optarg = ""
 		return c
-  end
+	end
 	return -1
 end
 
