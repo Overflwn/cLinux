@@ -13,10 +13,24 @@
 
 local tArgs = {...}
 
-if #tArgs < 1 or #tArgs > 1 or tArgs[1] == "." then
+if #tArgs > 1 or tArgs[1] == "." then
 	print("Usage:")
 	print("		cd <path>")
 else
+	if tArgs[1] == "-" then
+		local oldpwd = _G["OLDPWD"]
+		if oldpwd == nil then
+			printError("OLDPWD isn't set.")
+		else
+			tArgs[1] = oldpwd
+		end
+	elseif tArgs[1] == nil then
+		local usr = lib.perm.permission.getCurrentUser()
+		tArgs[1] = "/home/"..usr.."/"
+	end
+
+	_put("OLDPWD", shell.dir())
+
 	if tArgs[1] ~= ".." then
 		local ok = shell.setDir(tArgs[1])
 		if ok == false then
