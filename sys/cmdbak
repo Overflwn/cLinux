@@ -968,9 +968,3 @@ while running do
 		running = false
 	end
 end
---[[Try to run all tasks, if it fails, it sets to dead, which leads to /vit/alive restarting
-local ok, err = pcall(thread.runAll, tasks)
-if not ok then
-	printError(err)
-	flag.STATE_DEAD = true
-end]]
