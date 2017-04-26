@@ -1,0 +1,28 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/addusr
+	CATEGORY:    Binary
+	SET:         Core Binary
+	DESCRIPTION:
+		This program allows the user
+		to add a new user to the system.
+]]--
+
+local args = {...}
+if #args ~= 2 then
+	print("Usage:")
+	print("		addusr <name> <password>")
+	return
+end
+
+--attempt to create the user, prints out if it succeeded or not
+local ok, err = lib.perm.usrs.addUser(args[1], args[2])
+if ok then
+	print("Successfully created!")
+elseif not ok and err == "exists" then
+	printError("User already exists.")
+else
+	printError("An unknown error occured. Please report it in the forum post or on GitHub!")
+end
