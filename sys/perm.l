@@ -49,6 +49,7 @@ end
 _put('hashPw', hashPw)
 
 local usrs = {}
+local permission = {}
 
 --Return the list of every registered user
 function usrs.getList()
@@ -102,18 +103,20 @@ function usrs.checkRootPw(p)
 end
 
 function usrs.removeUser(name, rpw)
-	if name == nil or rpw == nil or name == "root" then return end
+	if name == nil or rpw == nil then return false, "string, string expected" end
+	if name == "root" then return false, "can not delete root" end
 	if _users[name] then
 		local rpw = hashPw(rpw, "root")
-		local a = perm.checkRootPw(rpw)
-		if a == false then
-			return false
-		elseif a == true then
+		local a = usrs.checkRootPw(rpw)
+		if a == false and permission.getCurrentUser() ~= "root" then
+			return false, "wrong password"
+		elseif a == true or permission.getCurrentUser() == "root" then
 			old.fs.delete("/home/"..name)
 			_users[name] = nil
 			local file = old.fs.open("/sys/usrData", "w")
 			file.write(textutils.serialize(_users))
 			file.close()
+			return true
 		end
 	else
 		return nil
@@ -178,7 +181,7 @@ function usrs.changeName(oldname, newname, pw)
 	end
 end
 
-local permission = {}
+
 
 function permission.check(f)
 	if folder == f and name ~= "root" then return "x" end	--Not finished

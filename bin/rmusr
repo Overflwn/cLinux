@@ -1,0 +1,32 @@
+--[[
+	cLinux : Lore of the Day!
+	Made by Piorjade, daelvn
+
+	NAME:        /bin/rmusr
+	CATEGORY:    Binary
+	SET:         Core Binary
+	DESCRIPTION:
+		This program allows the user
+		to remove a user from the system
+		using the root password.
+]]--
+
+local args = {...}
+if #args ~= 1 then
+	print("Usage:")
+	print("		rmusr <name>")
+	return
+elseif lib.perm.permission.getCurrentUser() ~= "root" then
+	printError("You have no privileges, try 'sudo'.")
+	return
+end
+local nm, pw = lib.perm.permission.getCurrentUser()
+
+local ok, err = lib.perm.usrs.removeUser(args[1], pw)
+if not ok and err == "can not delete root" then
+	printError("You can't remove root.")
+elseif not ok and err == "wrong password" then
+	printError("Wrong root password.")
+elseif not ok then
+	printError("User does not exist.")
+end
