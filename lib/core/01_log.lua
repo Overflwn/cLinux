@@ -43,13 +43,5 @@ function _G.log.print(t, source, message)
 		term.write(log.type.WARNING)
 	end
 	term.setTextColor(1)
-	term.write("] "..tostring(source)..": "..tostring(message))
-	local x, y = term.getCursorPos()
-	local sx, sy = term.getSize()
-	if y+1 <= sy then
-		term.setCursorPos(1, y+1)
-	else
-		term.scroll(1)
-		term.setCursorPos(1, sy)
-	end
+	print("] "..tostring(source)..": "..tostring(message))
 end
