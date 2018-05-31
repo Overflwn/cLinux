@@ -1,0 +1,40 @@
+--[[
+		cLinux BASH
+	WIP
+~Piorjade
+]]
+
+term.clear()
+term.setCursorPos(1,1)
+print("Logged in as "..perm.getUser())
+local currentDir = "/root"
+if not fs.exists(currentDir) then
+	fs.makeDir(currentDir)
+end
+local hostName = "noname"
+
+if fs.exists("/etc/hostname") then
+	local file, err = fs.open("/etc/hostname", "r")
+	if not file then
+		log.print(log.type.ERROR, "bash", "Couldn't open /etc/hostname: "..tostring(err))
+	else
+		local data = fs.readAll(file)
+		hostName = data
+		fs.close(file)
+	end
+end
+
+while true do
+	term.write("["..perm.getUser().."@"..hostName.." "..currentDir.."]$ ")
+	local text = read()
+	local cmds = splitStr(text, "%s")
+	local cmd = table.remove(cmds, 1)
+	if cmd == "ls" then
+		local files = fs.list(cmds[1] or currentDir)
+		for each, entry in ipairs(files) do
+			print(entry)
+		end
+	else
+		print("Command not found.")
+	end
+end

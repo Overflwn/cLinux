@@ -6,7 +6,7 @@
 --]]
 
 _G.package = {}
-_G.package.loaded = {]
+_G.package.loaded = {}
 _G.package.cpath = "/lib;/usr/lib"
 local oldfs = fs
 
@@ -14,7 +14,7 @@ function _G.require(name)
 	local paths = splitStr(_G.package.cpath, ";")
 	for each, path in ipairs(paths) do
 		if oldfs.exists(path.."/"..name..".lua") and not oldfs.isDir(path.."/"..name..".lua") then
-			local file, err = loadfile(path.."/"..name)
+			local file, err = loadfile(path.."/"..name..".lua")
 			if not file then
 				return false, err
 			end
@@ -23,6 +23,7 @@ function _G.require(name)
 				return false, data
 			end
 			_G.package.loaded[name] = data
+			return _G.package.loaded[name]
 		end
 	end
 end

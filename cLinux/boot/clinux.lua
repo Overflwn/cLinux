@@ -4,6 +4,9 @@
 --~Piorjade
 --]]
 
+
+print("HELLO WORLD!!!")
+
 local oldfs = fs
 function _G.splitStr(str, sep)
 	-- Solution I found on StackOverflow
@@ -23,14 +26,14 @@ for each, lib in ipairs(oldfs.list("/lib/core/")) do
 	local file, err = loadfile("/lib/core/"..lib)
 	if not file then
 		term.setTextColor(16384)
-		term.write("Could not load "..lib..": "..tostring(err)..", aborting...")
+		print("Could not load "..lib..": "..tostring(err)..", aborting...")
 		os.sleep(3)
 		return
 	end
 	local succ, err = pcall(file)
 	if not succ then
 		term.setTextColor(16384)
-		term.write("Error executing "..lib..": "..tostring(err)..", aborting...")
+		print("Error executing "..lib..": "..tostring(err)..", aborting...")
 		os.sleep(3)
 		return
 	end
@@ -39,4 +42,5 @@ end
 log.log(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
 log.print(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
 
-
+log.print(log.type.INFO, "cLinux Kernel", "Running bin/bash...")
+dofile("/bin/bash")

@@ -16,15 +16,15 @@ function newLog()
 end
 
 currentLog = newLog()
-function _G.log.type = {
-	"ERROR" = "ERROR",
-	"INFO" = "INFO",
-	"SUCCESS" = "SUCCESS",
-	"WARNING" = "WARNING"
+_G.log.type = {
+	ERROR = "ERROR",
+	INFO = "INFO",
+	SUCCESS = "SUCCESS",
+	WARNING = "WARNING"
 }
 
 function _G.log.log(t, source, message)
-	currentLog.writeLine("["..t.."] "..tostring(source)..": "..tostring(message))
+	oldfs.write(currentLog, "["..t.."] "..tostring(source)..": "..tostring(message).."\n")
 end
 
 function _G.log.print(t, source, message)
@@ -44,4 +44,9 @@ function _G.log.print(t, source, message)
 	end
 	term.setTextColor(1)
 	print("] "..tostring(source)..": "..tostring(message))
+end
+
+function _G.log.printAndLog(t, source, message)
+	_G.log.print(t, source, message)
+	_G.log.log(t, source, message)
 end
