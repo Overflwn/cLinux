@@ -35,9 +35,12 @@ Well, the main OS is located in the cLinux folder, which gets "converted" into a
 
 If you want to fix some stuff in the CMX filesystem, the driver is located in "fs_drivers/cmx" (with the wrapperbeing customfs_manager.lua).
 
-## Some unrelated shit, you probably don't want to see this
+## Some unrelated stuff, you probably don't want to see this
 
 My Twitter: [Click Here](https://www.twitter.com/piorjadelp)
+
 My Discord: Piorjade#6412
+
 My Steam: [Click Here](https://www.steamcommunity.com/id/piorjade)
+
 My Steemit (It's a cool new social media platform based on a blockchain, check it out if you don't hate blockchains by now): [Click Here](https://www.steemit.com/@piorjade)
