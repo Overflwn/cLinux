@@ -3,7 +3,12 @@
 -- A table serialization utility for lua
 -- Steve Dekorte, http://www.dekorte.com, Apr 2000
 -- Freeware
--- Modified by Piorjade
+----------------------------------------------
+-- Piorjade:
+-- NOTE:
+--	I had to use this instead of textutils.serialize/unserialize because
+--	at some point while using it with cLinux it started to refuse to serialize
+--	but apparently this one works just fine.
 ----------------------------------------------
 
 
@@ -85,7 +90,7 @@ local function pickle(t)
   return Pickle:clone():pickle_(t)
 end
 
-
+-- Lazy redirection to use the "better" serialization
 local textutils = {}
 textutils.serialize = pickle
 textutils.unserialize = unpickle
@@ -157,7 +162,8 @@ function filesystem:createNewHD(path)
       [1] = {
         type = "directory",
         owner = "root",
-        group_owner = "",
+        --TODO: Remove, makes no sense to me
+        --group_owner = "",
         data = {}
       }
     },
@@ -233,6 +239,7 @@ function filesystem:resolveBlock(path)
   end
 end
 
+--
 function filesystem:newBlock(type, owner, owner_group)
   local newInode
   local newBlock
@@ -250,7 +257,8 @@ function filesystem:newBlock(type, owner, owner_group)
   self.hd.blocks[newBlock] = {
     type = type,
     owner = owner or "root",
-    group_owner = owner_group or ""
+    --TODO: Remove, makes no sense to me
+    --group_owner = owner_group or ""
   }
   if type == "file" then
     self.hd.blocks[newBlock].data = ""
@@ -500,7 +508,7 @@ function filesystem:getOwner(path)
 	local foundInode, foundBlock = self:resolveBlock(path)
 	return foundBlock.owner	
 end
-
+--[[ TODO: Remove, makes no sense to me
 function filesystem:getOwnerGroup(path)
 	if not self:resolveBlock(path) then
 		return nil
@@ -508,7 +516,7 @@ function filesystem:getOwnerGroup(path)
 	local foundInode, foundBlock = self:resolveBlock(path)
 	return foundBlock.group_owner
 end
-
+]]
 function filesystem:setOwner(path, owner)
 	if not self:resolveBlock(path) or type(owner) ~= "string" or #owner < 1 then
 		return false
@@ -517,7 +525,7 @@ function filesystem:setOwner(path, owner)
 	foundBlock.owner = owner
 	return true
 end
-
+--[[ TODO: Remove, makes no sense to me
 function filesystem:setOwnerGroup(path, owner_group)
 	if not self:resolveBlock(path) or type(owner_group) ~= "string" or #owner_group < 1 then
 		return false
@@ -526,7 +534,7 @@ function filesystem:setOwnerGroup(path, owner_group)
 	foundBlock.group_owner = owner_group
 	return true
 end
-
+]]
 function filesystem:exists(path)
 	if self:resolveBlock(path) then
 		return true

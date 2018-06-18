@@ -6,10 +6,10 @@ cLinux:
 - ~~Log library~~
 - Process Management / Library
 - Sandboxing for Processes
-- getops Library
+- ~~getops Library~~
 - _Create bash_
 - Bash:
-	- Argument Parsing
+	- ~~Argument Parsing~~
 	- Customization
 	- Piping
 	  (Override output and input from programs and redirect to target?)

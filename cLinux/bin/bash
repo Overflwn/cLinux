@@ -24,15 +24,66 @@ if fs.exists("/etc/hostname") then
 	end
 end
 
+function _G.changeDir(dest)
+	currentDir = dest
+end
+
+function _G.getCurrentDir()
+	return currentDir
+end
+
 while true do
-	term.write("["..perm.getUser().."@"..hostName.." "..currentDir.."]$ ")
+	local isHome = false
+	if string.find(currentDir, perm.getUserHomeDir(perm.getUser())) == 1 then
+		isHome = true
+	end
+	if not isHome then
+		term.write("["..perm.getUser().."@"..hostName.." "..currentDir.."]$ ")
+	else
+		local homedir = perm.getUserHomeDir(perm.getUser())
+		local final_dir = "~"..string.sub(currentDir, #homedir+1)
+		term.write("["..perm.getUser().."@"..hostName.." "..final_dir.."]$ ")
+	end
 	local text = read()
 	local cmds = splitStr(text, "%s")
 	local cmd = table.remove(cmds, 1)
 	if cmd == "ls" then
 		local files = fs.list(cmds[1] or currentDir)
-		for each, entry in ipairs(files) do
-			print(entry)
+		if not files then
+			print("Path not found.")
+		else
+			for each, entry in ipairs(files) do
+				print(entry)
+			end
+		end
+	elseif cmd == "reboot" then
+		os.reboot()
+	--[[elseif cmd == "cd" then
+		local ndest = cmds[1]
+		if ndest then
+			if string.sub(ndest, 1, 1) ~= "/" then
+				ndest = fs.normalizePath(currentDir.."/"..ndest)
+			else
+				ndest = fs.normalizePath(ndest)
+			end
+		else
+			ndest = perm.getUserHomeDir(perm.getUser())
+		end
+		if fs.exists(ndest) and fs.isDir(ndest) then
+			currentDir = ndest
+			print("New Dir: "..currentDir)
+		else
+			print("Not a directory.")
+		end]]
+	elseif fs.exists("/bin/"..cmd) and not fs.isDir("/bin/"..cmd) then
+		local func, err = loadfile("/bin/"..cmd)
+		if not func then
+			print("Failed to load program: "..tostring(err))
+		else
+			local ok, err = pcall(func, unpack(cmds))
+			if not ok then
+				print("Runtime error: "..tostring(err))
+			end
 		end
 	else
 		print("Command not found.")

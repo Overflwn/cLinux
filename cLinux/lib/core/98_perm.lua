@@ -21,7 +21,8 @@ _G.perm.status = {
 	SUCCESS = 0,
 	USER_NOT_FOUND = 1,
 	WRONG_PW = 2,
-	USER_FOUND = 3
+	USER_FOUND = 3,
+	INVALID_PARAMETERS = 4
 }
 
 local users = {}
@@ -59,7 +60,8 @@ if not oldfs.exists("/etc/perm.conf.d/users") then
   log.printAndLog(log.type.INFO, "perm.lua", "/etc/perm.conf.d/users does not exist, creating...")
   users["root"] = {}
   users.root.password = "C812B3C9507E06610998EEDA309E9C4A733A04A8EDE09427EDC705E6802AD7AE"
-  users.root.group = ""
+	users.root.group = ""
+	users.root.homedir = "/root"
   local str_users = serialization.serialize(users)
   local file, err = oldfs.open("/etc/perm.conf.d/users", "w")
   if not file then
@@ -116,6 +118,10 @@ function _G.perm.getUserGroup(name)
 	return users[name].group
 end
 
+function _G.perm.getUserHomeDir(name)
+	return users[name].homedir
+end
+
 function _G.perm.checkPassword(user, pw)
 	if not users[user] then
 		return perm.status.USER_NOT_FOUND
@@ -129,12 +135,16 @@ function _G.perm.checkPassword(user, pw)
 end
 
 function _G.perm.createUser(user, pw, group)
+	if type(user) ~= "string" or #user < 1 or type(pw) ~= "string" or #pw < 1 then
+		return perm.status.INVALID_PARAMETERS
+	end
 	if users[user] then
 		return perm.status.USER_FOUND
 	end
 	local enc_pw = tostring(sha.sha256(pw..user))
 	users[user].password = enc_pw
 	users[user].group = group or ""
+	users[user].homedir = "/home/"..user
 	return perm.status.SUCCESS
 end
 
@@ -149,7 +159,7 @@ function _G.perm.switchUser(user, pw)
 end
 
 function _G.perm.hasAccess(path)
-	if oldfs.getOwner(path) == currentUser or oldfs.getOwnerGroup(path) == users[currentUser].group or curretnUser == "root" then
+	if oldfs.getOwner(path) == currentUser or currentUser == "root" then
 		return true
 	else
 		return false

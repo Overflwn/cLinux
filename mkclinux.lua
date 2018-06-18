@@ -55,7 +55,9 @@ local function newloadfile(name)
 		return false, "file not found"
 	end
 	local file, err = fs_mgr.open(name, "r")
-	if not file then return false, err end
+	if not file then
+		return false, err 
+	end
 	--Read everything
 	local final_data = ""
 	repeat
@@ -66,7 +68,10 @@ local function newloadfile(name)
 	until data == "" or data == nil
 	fs_mgr.close(file)
 	
-	local f = loadstring(final_data, "=("..name..")")
+	local f, err = loadstring(final_data, "=("..name..")")
+	if not f then
+		return false, err
+	end
 	setfenv(f, metaEnv)
 	return f
 end

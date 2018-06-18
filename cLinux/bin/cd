@@ -1,0 +1,23 @@
+--[[
+        cLinux Standard Binaries: cd
+    
+    ~Piorjade
+]]
+
+local cmds = {...}
+local ndest = cmds[1]
+if ndest then
+	if string.sub(ndest, 1, 1) ~= "/" then
+		ndest = fs.normalizePath(getCurrentDir().."/"..ndest)
+	else
+		ndest = fs.normalizePath(ndest)
+	end
+else
+	ndest = perm.getUserHomeDir(perm.getUser())
+end
+if fs.exists(ndest) and fs.isDir(ndest) then
+	changeDir(ndest)
+	print("New Dir: "..ndest)
+else
+	print("Not a directory.")
+end
