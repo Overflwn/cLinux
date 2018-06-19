@@ -23,7 +23,7 @@
   This does not mean that you can't add
   even more methods or have different parameters/return values,
   as this manager allows to use the raw driver aswell.
-~Piorjade
+~Overflwn
 ]]
 
 local drivers = {}

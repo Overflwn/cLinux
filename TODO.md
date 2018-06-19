@@ -7,6 +7,7 @@ cLinux:
 - Process Management / Library
 - Sandboxing for Processes
 - ~~getops Library~~
+- Don't run bash instantly, run /sbin/init first (-> seperates the "kernel" from being an actual OS and makes it more modular that way)
 - _Create bash_
 - Bash:
 	- ~~Argument Parsing~~

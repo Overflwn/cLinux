@@ -2,7 +2,7 @@
 --		cLinux package library
 --	Load libraries via 'require(lib)'
 --
---~Piorjade
+--~Overflwn
 --]]
 
 _G.package = {}

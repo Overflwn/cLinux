@@ -2,7 +2,7 @@
 --		cLinux permission library
 --
 --
---~Piorjade
+--~Overflwn
 --]]
 
 local oldfs = fs

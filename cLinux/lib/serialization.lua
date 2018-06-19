@@ -3,7 +3,7 @@
 -- A table serialization utility for lua
 -- Steve Dekorte, http://www.dekorte.com, Apr 2000
 -- Freeware
--- Modified by Piorjade
+-- Modified by Overflwn
 ----------------------------------------------
 
 

@@ -1,7 +1,7 @@
 --[[
 --		cLinux logging system
 --
---~Piorjade
+--~Overflwn
 --]]
 
 _G.log = {}

@@ -5,7 +5,7 @@ This is just a project I make for fun and when I feel like it, don't even expect
 If you want to know what's already implemented, what's being worked on and what's still left to do, look at the TODO.md file.
 
 Cheers,
-Piorjade
+Overflwn
 
 ## How to test this shit
 
@@ -37,10 +37,10 @@ If you want to fix some stuff in the CMX filesystem, the driver is located in "f
 
 ## Some unrelated stuff, you probably don't want to see this
 
-My Twitter: [Click Here](https://www.twitter.com/piorjadelp)
+My Twitter: [Click Here](https://www.twitter.com/Overflwn)
 
-My Discord: Piorjade#6412
+My Discord: Overflwn#6412
 
-My Steam: [Click Here](https://www.steamcommunity.com/id/piorjade)
+My Steam: [Click Here](https://www.steamcommunity.com/id/Overflwn)
 
 My Steemit (It's a cool new social media platform based on a blockchain, check it out if you don't hate blockchains by now): [Click Here](https://www.steemit.com/@piorjade)
