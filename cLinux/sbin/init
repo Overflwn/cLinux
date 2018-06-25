@@ -1,0 +1,11 @@
+--[[
+		cLinux init file
+	This file gets executed when
+	the kernel finishes loading
+
+~Overflwn
+]]
+
+--TODO: Actually do some sandboxing
+
+dofile("/bin/bash")

@@ -5,6 +5,8 @@
 --]]
 
 
+-- TODO: Figure out more things that the kernel should do (Get rid of CraftOS-specific APIs?)
+
 print("HELLO WORLD!!!")
 
 local oldfs = fs
@@ -43,4 +45,6 @@ log.log(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
 log.print(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
 
 log.print(log.type.INFO, "cLinux Kernel", "Running bin/bash...")
-dofile("/bin/bash")
+
+-- TODO: Something is missing, this is too simplified
+dofile("/sbin/init")

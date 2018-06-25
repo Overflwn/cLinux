@@ -58,23 +58,6 @@ while true do
 		end
 	elseif cmd == "reboot" then
 		os.reboot()
-	--[[elseif cmd == "cd" then
-		local ndest = cmds[1]
-		if ndest then
-			if string.sub(ndest, 1, 1) ~= "/" then
-				ndest = fs.normalizePath(currentDir.."/"..ndest)
-			else
-				ndest = fs.normalizePath(ndest)
-			end
-		else
-			ndest = perm.getUserHomeDir(perm.getUser())
-		end
-		if fs.exists(ndest) and fs.isDir(ndest) then
-			currentDir = ndest
-			print("New Dir: "..currentDir)
-		else
-			print("Not a directory.")
-		end]]
 	elseif fs.exists("/bin/"..cmd) and not fs.isDir("/bin/"..cmd) then
 		local func, err = loadfile("/bin/"..cmd)
 		if not func then
@@ -89,3 +72,5 @@ while true do
 		print("Command not found.")
 	end
 end
+
+
