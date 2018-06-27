@@ -43,8 +43,8 @@ end
 
 log.log(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
 log.print(log.type.SUCCESS, "cLinux Kernel", "Loaded core libraries!")
-
-log.print(log.type.INFO, "cLinux Kernel", "Running bin/bash...")
+_G._ver_clinux = 0.1
+log.print(log.type.INFO, "cLinux Kernel", "Running sbin/init...")
 
 -- TODO: Something is missing, this is too simplified
 dofile("/sbin/init")

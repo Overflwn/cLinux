@@ -1,20 +1,40 @@
 --[[
 		cLinux BASH
 	WIP
+	TODO:
+		Switch to session-based permission system (basically update the FS calls)
+		Opening programs as processes
+		Sandboxing programs
+		Pipelining
+		Customization
 ~Overflwn
 ]]
 
 term.clear()
 term.setCursorPos(1,1)
-print("Logged in as "..perm.getUser())
+print("cLinux Kernel version: " .. tostring(_ver_clinux))
+
+-- Create a new perm session, important for FS calls
+local new_session = perm.createSession()
+local result = new_session.logIn("root", "toor")
+if result == perm.status.WRONG_PW then
+	log.printAndLog(log.type.ERROR, "bash", "Wrong root password!")
+	os.sleep(3)
+elseif result == perm.status.USER_NOT_FOUND then
+	log.printAndLog(log.type.ERROR, "bash", "root not found!")
+	os.sleep(3)
+else
+	print("Logged in as: " .. new_session.getUser())
+end
+
 local currentDir = "/root"
 if not fs.exists(currentDir) then
-	fs.makeDir(currentDir)
+	fs.makeDir(currentDir, new_session)
 end
 local hostName = "noname"
 
 if fs.exists("/etc/hostname") then
-	local file, err = fs.open("/etc/hostname", "r")
+	local file, err = fs.open("/etc/hostname", "r", new_session)
 	if not file then
 		log.print(log.type.ERROR, "bash", "Couldn't open /etc/hostname: "..tostring(err))
 	else
@@ -34,15 +54,15 @@ end
 
 while true do
 	local isHome = false
-	if string.find(currentDir, perm.getUserHomeDir(perm.getUser())) == 1 then
+	if string.find(currentDir, perm.getUserHomeDir(new_session.getUser())) == 1 then
 		isHome = true
 	end
 	if not isHome then
-		term.write("["..perm.getUser().."@"..hostName.." "..currentDir.."]$ ")
+		term.write("["..new_session.getUser().."@"..hostName.." "..currentDir.."]$ ")
 	else
-		local homedir = perm.getUserHomeDir(perm.getUser())
+		local homedir = perm.getUserHomeDir(new_session.getUser())
 		local final_dir = "~"..string.sub(currentDir, #homedir+1)
-		term.write("["..perm.getUser().."@"..hostName.." "..final_dir.."]$ ")
+		term.write("["..new_session.getUser().."@"..hostName.." "..final_dir.."]$ ")
 	end
 	local text = read()
 	local cmds = splitStr(text, "%s")
@@ -72,5 +92,3 @@ while true do
 		print("Command not found.")
 	end
 end
-
-
