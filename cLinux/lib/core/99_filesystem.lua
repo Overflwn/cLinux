@@ -8,8 +8,7 @@
 
 local newfs = {}
 local oldfs = _G.fs
-
-newfs.status = {
+local status = {
 	FILE_NOT_FOUND = 0,
 	INVALID_PARAMETERS = 1,
 	SUCCESS = 2,
@@ -29,6 +28,8 @@ local function readonlytable(table)
 		__metatable = false
 	})
 end
+
+newfs.status = readonlytable(status)
 
 function newfs.open(path, mode, session)
 	if mode ~= "w" and mode ~= "r" and mode ~= "a" then return false, newfs.status.INVALID_PARAMETERS end

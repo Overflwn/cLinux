@@ -1,6 +1,6 @@
 --[[
         cLinux Buffer Library
-    
+
     (This is a very simple API to create string buffers;
     These are to be used with redirecting I/O of programs)
 
@@ -62,6 +62,6 @@ end
 
 function buffer.newBuffer()
     return setmetatable({
-        data ={} 
-    }, bufferMeta)
+        data ={}
+    }, {__index=bufferMeta})
 end
