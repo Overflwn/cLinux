@@ -44,4 +44,4 @@ function getopt( arg, options )
     return tab
   end
 
-return {"get" = getopt}
+return {["get"] = getopt}
