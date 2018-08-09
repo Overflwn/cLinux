@@ -1,4 +1,5 @@
 cLinux:
+- **NEW**: Re-Implement the IO Library in mkclinux instead of removing it
 - ~~Finish filesystem wrapper~~ (?)
 - ~~Finish perm lib~~ (?)
 - ~~Bootchain Setup~~

@@ -1,4 +1,7 @@
 --Load cfs mgr
+--TODO:
+--	- Fix code syntax
+--	- Environment should actually have a re-implementation of IO
 dofile("customfs_manager.lua")
 
 fs_mgr:setDriver("cmx", "/cLinuxTestHD")
